@@ -59,6 +59,34 @@ function resolveAssetPath(path) {
     return new URL(path, window.location.href).toString();
 }
 
+function loadCatalogData() {
+    const mergedUrl = resolveAssetPath('products-merged.json');
+    const baseUrl = resolveAssetPath('products.json');
+
+    return fetch(mergedUrl)
+        .then(function (response) {
+            if (!response.ok) {
+                return fetch(baseUrl)
+                    .then(function (baseResponse) {
+                        if (!baseResponse.ok) {
+                            throw new Error('Не удалось загрузить продукты');
+                        }
+                        return baseResponse.json();
+                    });
+            }
+            return response.json();
+        })
+        .catch(function () {
+            return fetch(baseUrl)
+                .then(function (baseResponse) {
+                    if (!baseResponse.ok) {
+                        throw new Error('Не удалось загрузить продукты');
+                    }
+                    return baseResponse.json();
+                });
+        });
+}
+
 // ============================
 // ГЛОБАЛЬНОЕ ХРАНИЛИЩЕ И НАСТРОЙКИ ПАГИНАЦИИ
 // ============================
@@ -146,6 +174,34 @@ function getAvailableVariants(product) {
     return product.variants.filter(function (variant) {
         return productHasAnyStock(variant);
     });
+}
+
+function getDiscountInfo(price, discountPercent, discountAmount) {
+    const basePrice = Number(price) || 0;
+    let percent = Number(discountPercent);
+    if (!Number.isFinite(percent) || percent <= 0) {
+        const amount = Number(discountAmount);
+        if (Number.isFinite(amount) && amount > 0) {
+            percent = (amount / basePrice) * 100;
+        }
+    }
+
+    if (!Number.isFinite(percent) || percent <= 0) {
+        return {
+            hasDiscount: false,
+            discountPercent: 0,
+            oldPrice: null,
+            finalPrice: basePrice,
+        };
+    }
+
+    const finalPrice = Math.max(0, basePrice - (basePrice * percent) / 100);
+    return {
+        hasDiscount: true,
+        discountPercent: Math.round(percent),
+        oldPrice: basePrice,
+        finalPrice: finalPrice,
+    };
 }
 
 function productMatchesFilter(product) {
@@ -581,10 +637,7 @@ const CATEGORY_GROUPS = {
 // ============================
 
 if (productsContainer) {
-    fetch(resolveAssetPath('products.json'))
-        .then(function (response) {
-            return response.json();
-        })
+    loadCatalogData()
         .then(function (products) {
             ALL_PRODUCTS = products;
 
@@ -665,9 +718,29 @@ function buildProductCard(product) {
     link.appendChild(imageWrap);
     link.appendChild(title);
 
+    const productDiscount = getDiscountInfo(product.price, product.discountPercent, product.discountAmount);
+    const priceWrap = document.createElement('div');
+    priceWrap.className = 'product__price-wrap';
+
     const price = document.createElement('p');
     price.className = 'product__price';
-    price.textContent = product.price.toLocaleString('ru-RU') + ' ₽';
+    price.textContent = productDiscount.finalPrice.toLocaleString('ru-RU') + ' ₽';
+
+    if (productDiscount.hasDiscount && productDiscount.oldPrice !== null) {
+        const oldPrice = document.createElement('span');
+        oldPrice.className = 'product__old-price';
+        oldPrice.textContent = productDiscount.oldPrice.toLocaleString('ru-RU') + ' ₽';
+        priceWrap.appendChild(oldPrice);
+    }
+
+    priceWrap.appendChild(price);
+
+    if (productDiscount.hasDiscount) {
+        const discountBadge = document.createElement('span');
+        discountBadge.className = 'product__discount';
+        discountBadge.textContent = '-' + productDiscount.discountPercent + '%';
+        priceWrap.appendChild(discountBadge);
+    }
 
     /*
     const button = document.createElement('button');
@@ -676,7 +749,7 @@ function buildProductCard(product) {
     */
 
     article.appendChild(link);
-    article.appendChild(price);
+    article.appendChild(priceWrap);
     // article.appendChild(button);
 
     if (product.image === 'img/no-image.jpg') {
@@ -1061,10 +1134,7 @@ function renderPopularProducts(products) {
 }
 
 if (popularProductsContainer) {
-    fetch(resolveAssetPath('products.json'))
-        .then(function (response) {
-            return response.json();
-        })
+    loadCatalogData()
         .then(function (products) {
             renderPopularProducts(products);
         })
@@ -1154,10 +1224,7 @@ function loadProductPage() {
         return;
     }
 
-    fetch(resolveAssetPath('products.json'))
-        .then(function (response) {
-            return response.json();
-        })
+    loadCatalogData()
         .then(function (products) {
             const product = products.find(function (p) {
                 return p.id === productId && productHasAnyStock(p);
@@ -1256,10 +1323,31 @@ function renderProduct(product) {
         info.appendChild(article);
     }
 
+    const productPriceInfo = getDiscountInfo(product.price, product.discountPercent, product.discountAmount);
+    const priceWrap = document.createElement('div');
+    priceWrap.className = 'product-page__price-wrap';
+
     const price = document.createElement('p');
     price.className = 'product-page__price';
-    price.textContent = product.price.toLocaleString('ru-RU') + ' ₽';
-    info.appendChild(price);
+    price.textContent = productPriceInfo.finalPrice.toLocaleString('ru-RU') + ' ₽';
+
+    if (productPriceInfo.hasDiscount && productPriceInfo.oldPrice !== null) {
+        const oldPrice = document.createElement('span');
+        oldPrice.className = 'product-page__old-price';
+        oldPrice.textContent = productPriceInfo.oldPrice.toLocaleString('ru-RU') + ' ₽';
+        priceWrap.appendChild(oldPrice);
+    }
+
+    priceWrap.appendChild(price);
+
+    if (productPriceInfo.hasDiscount) {
+        const discountBadge = document.createElement('span');
+        discountBadge.className = 'product-page__discount';
+        discountBadge.textContent = '-' + productPriceInfo.discountPercent + '%';
+        priceWrap.appendChild(discountBadge);
+    }
+
+    info.appendChild(priceWrap);
 
     let selectedVariant = null;
     const availableVariants = getAvailableVariants(product);
@@ -1295,7 +1383,27 @@ function renderProduct(product) {
             });
             if (variant) {
                 selectedVariant = variant;
-                price.textContent = variant.price.toLocaleString('ru-RU') + ' ₽';
+                const variantDiscount = getDiscountInfo(variant.price, variant.discountPercent, variant.discountAmount);
+                price.textContent = variantDiscount.finalPrice.toLocaleString('ru-RU') + ' ₽';
+                const oldPriceEl = priceWrap.querySelector('.product-page__old-price');
+                const discountEl = priceWrap.querySelector('.product-page__discount');
+                if (oldPriceEl) oldPriceEl.remove();
+                if (discountEl) discountEl.remove();
+
+                if (variantDiscount.hasDiscount && variantDiscount.oldPrice !== null) {
+                    const oldPrice = document.createElement('span');
+                    oldPrice.className = 'product-page__old-price';
+                    oldPrice.textContent = variantDiscount.oldPrice.toLocaleString('ru-RU') + ' ₽';
+                    priceWrap.insertBefore(oldPrice, price);
+                }
+
+                if (variantDiscount.hasDiscount) {
+                    const discountBadge = document.createElement('span');
+                    discountBadge.className = 'product-page__discount';
+                    discountBadge.textContent = '-' + variantDiscount.discountPercent + '%';
+                    priceWrap.appendChild(discountBadge);
+                }
+
                 updateStockBlock(variant);
             }
         });
@@ -1370,7 +1478,26 @@ function renderProduct(product) {
     updateStockBlock(selectedVariant || product);
 
     if (selectedVariant) {
-        price.textContent = selectedVariant.price.toLocaleString('ru-RU') + ' ₽';
+        const variantDiscount = getDiscountInfo(selectedVariant.price, selectedVariant.discountPercent, selectedVariant.discountAmount);
+        price.textContent = variantDiscount.finalPrice.toLocaleString('ru-RU') + ' ₽';
+        const oldPriceEl = priceWrap.querySelector('.product-page__old-price');
+        const discountEl = priceWrap.querySelector('.product-page__discount');
+        if (oldPriceEl) oldPriceEl.remove();
+        if (discountEl) discountEl.remove();
+
+        if (variantDiscount.hasDiscount && variantDiscount.oldPrice !== null) {
+            const oldPrice = document.createElement('span');
+            oldPrice.className = 'product-page__old-price';
+            oldPrice.textContent = variantDiscount.oldPrice.toLocaleString('ru-RU') + ' ₽';
+            priceWrap.insertBefore(oldPrice, price);
+        }
+
+        if (variantDiscount.hasDiscount) {
+            const discountBadge = document.createElement('span');
+            discountBadge.className = 'product-page__discount';
+            discountBadge.textContent = '-' + variantDiscount.discountPercent + '%';
+            priceWrap.appendChild(discountBadge);
+        }
     }
 
     // initAddToCart();
