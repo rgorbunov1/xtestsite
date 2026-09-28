@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Товар — START</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ШАПКА -->
+    <header class="header">
+        <div class="container header__inner">
+
+            <a href="index.html" class="logo" aria-label="Главная страница">
+                <img class="img__logo" src="img/logo.png" alt="START SHOP">
+            </a>
+
+            <nav class="nav" id="nav">
+                <a href="index.html" class="nav__link">Главная</a>
+                <a href="catalog.html" class="nav__link">Каталог</a>
+                <a href="index.html#features" class="nav__link">О нас</a>
+                <a href="index.html#footer" class="nav__link">Контакты</a>
+            </nav>
+
+            <form class="search" id="searchForm">
+                <input class="search__input" type="text" id="searchInput" placeholder="Поиск товаров..." aria-label="Поиск товаров">
+                <button class="search__btn" type="submit" aria-label="Найти">🔍</button>
+            </form>
+
+            <div class="header__actions">
+                <!-- <div class="cart cart--dropdown-trigger" id="cartDropdownTrigger">
+                    🛒 <span class="cart__count">0</span>
+                </div> -->
+                <button class="burger" id="burger" aria-label="Меню">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- ОСНОВНОЙ КОНТЕНТ -->
+    <main>
+
+        <!-- ХЛЕБНЫЕ КРОШКИ -->
+        <div class="breadcrumbs">
+            <div class="container">
+                <a href="index.html" class="breadcrumbs__link">Главная</a>
+                <span class="breadcrumbs__sep">/</span>
+                <a href="catalog.html" class="breadcrumbs__link">Каталог</a>
+                <span class="breadcrumbs__sep">/</span>
+                <span class="breadcrumbs__current" id="productBreadcrumb">Загрузка...</span>
+            </div>
+        </div>
+
+        <!-- СТРАНИЦА ТОВАРА -->
+        <section class="product-page">
+            <div class="container">
+                <div class="product-page__inner" id="productContainer">
+                    <p class="product-page__loading">Загрузка товара...</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ВЫПАДАЮЩАЯ МИНИ-КОРЗИНА В ШАПКЕ -->
+    <!-- <div class="mini-cart" id="miniCart" hidden>
+        <div class="mini-cart__arrow"></div>
+        <div class="mini-cart__inner">
+            <div class="mini-cart__header">
+                <span class="mini-cart__title">Корзина</span>
+                <button class="mini-cart__clear" id="miniCartClear" type="button" hidden>Очистить</button>
+            </div>
+            <div class="mini-cart__list" id="miniCartList"></div>
+            <div class="mini-cart__footer" id="miniCartFooter">
+                <div class="mini-cart__total">
+                    Итого: <strong id="miniCartTotal">0 ₽</strong>
+                </div>
+                <a href="cart.html" class="btn btn--primary btn--block" id="miniCartGo">Перейти в корзину</a>
+            </div>
+        </div>
+    </div> -->
+
+    <!-- ВСПЛЫВАШКА «ТОВАР ДОБАВЛЕН» -->
+    <!-- <div class="toast" id="toastAdded" hidden></div> -->
+
+    <!-- ПОДВАЛ -->
+    <footer class="footer" id="footer">
+        <div class="container footer__inner">
+
+            <div class="footer__col">
+                <a href="index.html" class="logo logo--light" aria-label="Главная страница">
+                    <img class="img__logo img__logo--footer" src="img/logo.png" alt="START SHOP">
+                </a>
+                <p class="footer__text">Спортивные товары для тех, кто не стоит на месте.</p>
+            </div>
+
+            <div class="footer__col">
+                <h4 class="footer__title">Магазин</h4>
+                <a href="index.html" class="footer__link">Главная</a>
+                <a href="catalog.html" class="footer__link">Каталог</a>
+            </div>
+
+            <div class="footer__col">
+                <h4 class="footer__title">Контакты</h4>
+                <a href="tel:+79000000000" class="footer__link">+7 (900) 000-00-00</a>
+                <a href="mailto:test@mail.ru" class="footer__link">test@mail.ru</a>
+            </div>
+
+            <div class="footer__col">
+                <h4 class="footer__title">Мы в соцсетях</h4>
+                <a href="#" class="footer__link">VK</a>
+                <a href="#" class="footer__link">MAX</a>
+            </div>
+
+        </div>
+        <div class="footer__bottom">
+            <p>© 2026 START. Все права защищены.</p>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
