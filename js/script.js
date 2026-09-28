@@ -1469,8 +1469,8 @@ function renderProduct(product) {
     addSpecRow(specs, 'Категория', product.category || 'Прочее');
     addSpecRow(specs, 'Наличие', product.stock > 0 ? 'В наличии' : 'Нет в наличии');
 
-    if (product.variants && product.variants.length > 0) {
-        addSpecRow(specs, 'Количество вариантов', product.variants.length);
+    if (availableVariants.length > 0) {
+        addSpecRow(specs, 'Количество вариантов', availableVariants.length);
     }
 
     info.appendChild(specs);

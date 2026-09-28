@@ -300,7 +300,6 @@ function mergeProducts(products, extraIndex) {
             merged.variants = combinedVariants.map((variant) => ({
                 ...variant,
                 price: variant.price ?? product.price ?? 0,
-                stock: variant.stock ?? product.stock ?? 0,
                 image: variant.image || merged.image || product.image || '',
                 gallery: variant.gallery && variant.gallery.length ? variant.gallery : merged.gallery || [],
                 discountPercent: variant.discountPercent ?? variant.discount_percent,
