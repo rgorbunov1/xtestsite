@@ -660,13 +660,20 @@ if (productsContainer) {
 // ============================
 
 function buildProductCard(product) {
+    const availableVariants = getAvailableVariants(product);
+    const firstVariantImage = availableVariants.find(function (variant) {
+        return variant.image && variant.image !== 'img/no-image.jpg';
+    });
+    const cardImage = product.image && product.image !== 'img/no-image.jpg'
+        ? product.image
+        : firstVariantImage?.image || product.image || '';
     const article = document.createElement('article');
     article.className = 'product';
     article.dataset.category = product.category || '';
     article.dataset.price = product.price || 0;
     article.dataset.productId = product.id || '';
     article.dataset.productName = product.name || '';
-    article.dataset.productImage = product.image || '';
+    article.dataset.productImage = cardImage;
     article.dataset.productPrice = product.price || 0;
 
     if (product.categories && product.categories.length > 1) {
@@ -684,7 +691,7 @@ function buildProductCard(product) {
     imageWrap.className = 'product__image';
 
     const img = document.createElement('img');
-    img.src = product.image;
+    img.src = cardImage;
     img.alt = product.alt || product.name || '';
     img.loading = 'lazy';
 
@@ -752,7 +759,7 @@ function buildProductCard(product) {
     article.appendChild(priceWrap);
     // article.appendChild(button);
 
-    if (product.image === 'img/no-image.jpg') {
+    if (!cardImage || cardImage === 'img/no-image.jpg') {
         showPlaceholder();
     }
 
@@ -1283,6 +1290,7 @@ function renderProduct(product) {
     img.loading = 'lazy';
 
     let galleryPlaceholderShown = false;
+    let galleryPlaceholder = null;
     function showGalleryPlaceholder() {
         if (galleryPlaceholderShown) return;
         galleryPlaceholderShown = true;
@@ -1295,7 +1303,26 @@ function renderProduct(product) {
         const text = document.createElement('span');
         text.className = 'product-page__placeholder-text';
         text.textContent = product.name || 'Фото товара';
+        galleryPlaceholder = text;
         gallery.appendChild(text);
+    }
+
+    function setGalleryImage(imagePath) {
+        if (!imagePath || imagePath === 'img/no-image.jpg') {
+            showGalleryPlaceholder();
+            return;
+        }
+
+        galleryPlaceholderShown = false;
+        gallery.classList.remove('product-page__gallery--placeholder');
+        if (galleryPlaceholder) {
+            galleryPlaceholder.remove();
+            galleryPlaceholder = null;
+        }
+        if (!img.parentNode) {
+            gallery.appendChild(img);
+        }
+        img.src = resolveAssetPath(imagePath);
     }
 
     img.addEventListener('error', function () {
@@ -1405,12 +1432,14 @@ function renderProduct(product) {
                     priceWrap.appendChild(discountBadge);
                 }
 
+                setGalleryImage(variant.image || product.image);
                 updateStockBlock(variant);
                 renderVariantSpecs(variant);
             }
         });
 
         selectedVariant = availableVariants[0];
+        setGalleryImage(selectedVariant.image || product.image);
     } else if (!productHasAnyStock(product)) {
         if (productContainer) {
             productContainer.innerHTML = '';
