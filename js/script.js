@@ -63,10 +63,10 @@ function loadCatalogData() {
     const mergedUrl = resolveAssetPath('products-merged.json');
     const baseUrl = resolveAssetPath('products.json');
 
-    return fetch(mergedUrl)
+    return fetch(mergedUrl, { cache: 'no-store' })
         .then(function (response) {
             if (!response.ok) {
-                return fetch(baseUrl)
+                return fetch(baseUrl, { cache: 'no-store' })
                     .then(function (baseResponse) {
                         if (!baseResponse.ok) {
                             throw new Error('Не удалось загрузить продукты');
@@ -77,7 +77,7 @@ function loadCatalogData() {
             return response.json();
         })
         .catch(function () {
-            return fetch(baseUrl)
+            return fetch(baseUrl, { cache: 'no-store' })
                 .then(function (baseResponse) {
                     if (!baseResponse.ok) {
                         throw new Error('Не удалось загрузить продукты');
@@ -1350,6 +1350,7 @@ function renderProduct(product) {
     info.appendChild(priceWrap);
 
     let selectedVariant = null;
+    let renderVariantSpecs = function () {};
     const availableVariants = getAvailableVariants(product);
 
     if (availableVariants.length > 0) {
@@ -1405,6 +1406,7 @@ function renderProduct(product) {
                 }
 
                 updateStockBlock(variant);
+                renderVariantSpecs(variant);
             }
         });
 
@@ -1469,9 +1471,30 @@ function renderProduct(product) {
     addSpecRow(specs, 'Категория', product.category || 'Прочее');
     addSpecRow(specs, 'Наличие', product.stock > 0 ? 'В наличии' : 'Нет в наличии');
 
+    if (Array.isArray(product.specs)) {
+        product.specs.forEach(function (spec) {
+            if (spec && (spec.name || spec.value)) {
+                addSpecRow(specs, spec.name || 'Характеристика', spec.value || '—');
+            }
+        });
+    }
+
     if (availableVariants.length > 0) {
         addSpecRow(specs, 'Количество вариантов', availableVariants.length);
     }
+
+    const variantSpecsContainer = document.createElement('div');
+    renderVariantSpecs = function (variant) {
+        variantSpecsContainer.replaceChildren();
+        if (!variant || !Array.isArray(variant.specs)) return;
+        variant.specs.forEach(function (spec) {
+            if (spec && (spec.name || spec.value)) {
+                addSpecRow(variantSpecsContainer, spec.name || 'Характеристика варианта', spec.value || '—');
+            }
+        });
+    };
+    renderVariantSpecs(selectedVariant);
+    specs.appendChild(variantSpecsContainer);
 
     info.appendChild(specs);
 

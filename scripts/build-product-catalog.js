@@ -215,7 +215,7 @@ function buildExtraIndex(rows) {
                 name: variantName || 'Вариант',
                 price: toNumber(lookupFirst(row, ['variant_price', 'price']), undefined),
                 stock: toNumber(lookupFirst(row, ['variant_stock', 'stock']), 0),
-                image: lookupFirst(row, ['variant_image', 'option_image']) || variantImages[0] || mainImage,
+                image: lookupFirst(row, ['variant_image', 'option_image']) || variantImages[0],
                 gallery: collectImageFields(row, 'variant_gallery').length
                     ? collectImageFields(row, 'variant_gallery')
                     : variantImages.slice(1).length
@@ -294,17 +294,40 @@ function mergeProducts(products, extraIndex) {
 
         if (extra.variants && extra.variants.length) {
             const baseVariants = Array.isArray(product.variants) ? product.variants.map((variant) => ({ ...variant })) : [];
-            const combinedVariants = [...baseVariants, ...extra.variants]
-                .filter((variant, index, arr) => variant && variant.id && arr.findIndex((item) => item && item.id === variant.id) === index);
+            const extraVariantsById = new Map(extra.variants
+                .filter((variant) => variant && variant.id)
+                .map((variant) => [String(variant.id), variant]));
+            const baseVariantIds = new Set(baseVariants.map((variant) => String(variant.id)));
 
-            merged.variants = combinedVariants.map((variant) => ({
-                ...variant,
-                price: variant.price ?? product.price ?? 0,
-                image: variant.image || merged.image || product.image || '',
-                gallery: variant.gallery && variant.gallery.length ? variant.gallery : merged.gallery || [],
-                discountPercent: variant.discountPercent ?? variant.discount_percent,
-                discountAmount: variant.discountAmount ?? variant.discount_amount,
-            }));
+            merged.variants = baseVariants.map((variant) => {
+                const extraVariant = extraVariantsById.get(String(variant.id));
+                if (!extraVariant) return variant;
+
+                return {
+                    ...variant,
+                    image: extraVariant.image || variant.image || '',
+                    gallery: extraVariant.gallery && extraVariant.gallery.length
+                        ? extraVariant.gallery
+                        : variant.gallery || [],
+                    specs: extraVariant.specs && extraVariant.specs.length
+                        ? extraVariant.specs
+                        : variant.specs,
+                    discountPercent: extraVariant.discountPercent ?? variant.discountPercent ?? variant.discount_percent,
+                    discountAmount: extraVariant.discountAmount ?? variant.discountAmount ?? variant.discount_amount,
+                };
+            });
+
+            extra.variants.forEach((variant) => {
+                if (!variant || !variant.id || baseVariantIds.has(String(variant.id))) return;
+                merged.variants.push({
+                    ...variant,
+                    price: variant.price ?? product.price ?? 0,
+                    image: variant.image || merged.image || product.image || '',
+                    gallery: variant.gallery && variant.gallery.length ? variant.gallery : merged.gallery || [],
+                    discountPercent: variant.discountPercent ?? variant.discount_percent,
+                    discountAmount: variant.discountAmount ?? variant.discount_amount,
+                });
+            });
         }
 
         if (!merged.image && merged.variants && merged.variants.length) {
