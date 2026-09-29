@@ -276,7 +276,7 @@ function mergeProducts(products, extraIndex) {
             merged.gallery = extra.gallery;
         }
 
-        if (extra.description) {
+        if (!normalizeValue(product.description) && extra.description) {
             merged.description = extra.description;
         }
 

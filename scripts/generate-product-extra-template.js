@@ -143,7 +143,7 @@ function extractProductRows(products) {
             gallery_3: '',
             gallery_4: '',
             gallery_5: '',
-            description: '',
+            description: product.description || '',
             spec_1_name: '',
             spec_1_value: '',
             spec_2_name: '',
@@ -211,6 +211,9 @@ function mergeWithExistingRows(productsRows, existingRows) {
         }
         if (!mergedRow.product_name && row.product_name) {
             mergedRow.product_name = row.product_name;
+        }
+        if (normalizeValue(row.description)) {
+            mergedRow.description = row.description;
         }
 
         merged.push(mergedRow);

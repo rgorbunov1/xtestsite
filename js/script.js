@@ -1479,10 +1479,6 @@ function renderProduct(product) {
         });
     }
 
-    if (availableVariants.length > 0) {
-        addSpecRow(specs, 'Количество вариантов', availableVariants.length);
-    }
-
     const variantSpecsContainer = document.createElement('div');
     renderVariantSpecs = function (variant) {
         variantSpecsContainer.replaceChildren();
@@ -1497,6 +1493,23 @@ function renderProduct(product) {
     specs.appendChild(variantSpecsContainer);
 
     info.appendChild(specs);
+
+    if (product.description) {
+        const description = document.createElement('section');
+        description.className = 'product-page__description';
+
+        const descriptionTitle = document.createElement('h2');
+        descriptionTitle.className = 'specs__title';
+        descriptionTitle.textContent = 'Описание';
+
+        const descriptionText = document.createElement('p');
+        descriptionText.className = 'product-page__description-text';
+        descriptionText.textContent = product.description;
+
+        description.appendChild(descriptionTitle);
+        description.appendChild(descriptionText);
+        info.appendChild(description);
+    }
 
     updateStockBlock(selectedVariant || product);
 
