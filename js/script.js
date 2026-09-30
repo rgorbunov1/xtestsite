@@ -59,6 +59,65 @@ function resolveAssetPath(path) {
     return new URL(path, window.location.href).toString();
 }
 
+let SITE_SETTINGS = {
+    contact: {},
+    social: {},
+    warehouses: {},
+};
+
+function parseSiteSettings(documentToRead) {
+    const settingsElement = documentToRead.querySelector('#site-settings');
+    return settingsElement ? JSON.parse(settingsElement.textContent) : SITE_SETTINGS;
+}
+
+function loadSiteSettings() {
+    const localSettings = document.querySelector('#site-settings');
+    if (localSettings) {
+        try {
+            return Promise.resolve(JSON.parse(localSettings.textContent));
+        } catch (error) {
+            return Promise.reject(error);
+        }
+    }
+
+    return fetch(resolveAssetPath('index.html'), { cache: 'no-store' })
+        .then(function (response) {
+            if (!response.ok) throw new Error('Не удалось загрузить настройки сайта');
+            return response.text();
+        })
+        .then(function (html) {
+            return parseSiteSettings(new DOMParser().parseFromString(html, 'text/html'));
+        });
+}
+
+function applySiteSettings(root) {
+    const container = root || document;
+    const contact = SITE_SETTINGS.contact || {};
+    const social = SITE_SETTINGS.social || {};
+    const phone = contact.phone || '';
+    const email = contact.email || '';
+
+    container.querySelectorAll('[data-site-contact="phone"]').forEach(function (link) {
+        link.textContent = phone;
+        link.href = phone ? 'tel:' + phone.replace(/[^+\d]/g, '') : '#';
+        link.hidden = !phone;
+    });
+    container.querySelectorAll('[data-site-contact="email"]').forEach(function (link) {
+        link.textContent = email;
+        link.href = email ? 'mailto:' + email : '#';
+        link.hidden = !email;
+    });
+    container.querySelectorAll('[data-site-social]').forEach(function (link) {
+        const url = social[link.dataset.siteSocial] || '';
+        link.href = url || '#';
+        link.hidden = !url;
+        if (url) {
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+        }
+    });
+}
+
 function loadCatalogData() {
     const mergedUrl = resolveAssetPath('products-merged.json');
     const baseUrl = resolveAssetPath('products.json');
@@ -1281,9 +1340,19 @@ if (heroSlides.length > 0) {
 }
 
 const productContainer = document.getElementById('productContainer');
+const siteSettingsReady = loadSiteSettings()
+    .then(function (settings) {
+        SITE_SETTINGS = settings;
+        applySiteSettings(document);
+        return settings;
+    })
+    .catch(function (error) {
+        console.error('Ошибка загрузки настроек сайта:', error);
+        return SITE_SETTINGS;
+    });
 
 if (productContainer) {
-    loadProductPage();
+    siteSettingsReady.then(loadProductPage);
 }
 
 function loadProductPage() {
@@ -1689,6 +1758,18 @@ function renderProduct(product) {
     stockBlock.id = 'productStock';
     info.appendChild(stockBlock);
 
+    const contactButton = document.createElement('a');
+    contactButton.className = 'btn btn--primary product-page__contact-btn';
+    contactButton.dataset.siteContact = 'chat';
+    contactButton.textContent = 'Написать нам';
+    contactButton.hidden = !((SITE_SETTINGS.contact || {}).chatUrl);
+    if (!contactButton.hidden) {
+        contactButton.href = SITE_SETTINGS.contact.chatUrl;
+        contactButton.target = '_blank';
+        contactButton.rel = 'noopener noreferrer';
+    }
+    info.appendChild(contactButton);
+
     content.appendChild(gallery);
     content.appendChild(info);
     productContainer.appendChild(content);
@@ -1827,8 +1908,22 @@ function updateStockBlock(item) {
     list.className = 'product-page__stock-list';
 
     item.stockByWarehouse.forEach(function (w) {
+        const warehouseSettings = (SITE_SETTINGS.warehouses || {})[w.name] || {};
+        if (warehouseSettings.visible === false) return;
+
         const li = document.createElement('li');
-        li.textContent = w.name + ': ' + w.qty + ' шт.';
+        const warehouseName = document.createElement(warehouseSettings.mapUrl ? 'a' : 'span');
+        warehouseName.className = 'product-page__stock-location';
+        warehouseName.textContent = w.name;
+        if (warehouseSettings.mapUrl) {
+            warehouseName.href = warehouseSettings.mapUrl;
+            warehouseName.target = '_blank';
+            warehouseName.rel = 'noopener noreferrer';
+        }
+
+        const quantity = document.createElement('span');
+        quantity.textContent = w.qty + ' шт.';
+        li.append(warehouseName, quantity);
         if (w.qty === 0) {
             li.classList.add('product-page__stock-item--empty');
         }

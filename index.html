@@ -5,6 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>X</title>
     <link rel="stylesheet" href="css/style.css" />
+    <!--
+      Настройки сайта:
+      contact.chatUrl — ссылка на чат для кнопки «Написать нам»;
+      contact.phone/email — телефон и почта во всех футерах;
+      social.vk/max — ссылки на VK и MAX;
+      warehouses.*.mapUrl — URL точки склада на карте;
+      warehouses.*.visible — false скрывает строку этого склада.
+    -->
+    <script type="application/json" id="site-settings">
+      {
+        "contact": {
+          "chatUrl": "",
+          "phone": "+7 (900) 000-00-00",
+          "email": "test@mail.ru"
+        },
+        "social": {
+          "vk": "",
+          "max": ""
+        },
+        "warehouses": {
+          "На складе": { "visible": true, "mapUrl": "" },
+          "Парк": { "visible": true, "mapUrl": "" },
+          "Меркурий (С остатками)": { "visible": true, "mapUrl": "" },
+          "Нижний Новгород": { "visible": true, "mapUrl": "" }
+        }
+      }
+    </script>
   </head>
   <body>
     <header class="header">
@@ -359,13 +386,13 @@
         </div>
         <div class="footer__col">
           <h4 class="footer__title">Контакты</h4>
-          <a href="tel:79000000000" class="footer__link">79000000000</a>
-          <a href="mailto:test@mail.ru" class="footer__link">test@mail.ru</a>
+          <a href="tel:+79000000000" class="footer__link" data-site-contact="phone">+7 (900) 000-00-00</a>
+          <a href="mailto:test@mail.ru" class="footer__link" data-site-contact="email">test@mail.ru</a>
         </div>
         <div class="footer__col">
           <h4 class="footer__title">Мы в соцсетях</h4>
-          <a href="#" class="footer__link">VK</a>
-          <a href="#" class="footer__link">MAX</a>
+          <a href="#" class="footer__link" data-site-social="vk">VK</a>
+          <a href="#" class="footer__link" data-site-social="max">MAX</a>
         </div>
       </div>
       <div class="footer__bottom">

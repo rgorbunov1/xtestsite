@@ -1955,6 +1955,17 @@ img {
     border-bottom: none;
 }
 
+.product-page__stock-location {
+    color: inherit;
+    text-decoration: none;
+}
+
+a.product-page__stock-location:hover,
+a.product-page__stock-location:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
 .product-page__stock-item--empty {
     color: var(--color-gray);
     opacity: 0.6;
@@ -1964,6 +1975,15 @@ img {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
+}
+
+.product-page__contact-btn {
+    align-self: flex-start;
+    text-decoration: none;
+}
+
+.product-page__contact-btn[hidden] {
+    display: none;
 }
 
 .product-page__loading {
