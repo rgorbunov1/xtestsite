@@ -181,7 +181,7 @@ function buildExtraIndex(rows) {
         const variantId = lookupFirst(row, ['variant_id', 'option_id', 'id_variant']);
         if (variantId) {
             const variantName = lookupFirst(row, ['variant_name', 'option_name', 'name', 'variant']);
-            const variantImages = [1, 2, 3]
+            const variantImages = Array.from({ length: 10 }, (_, index) => index + 1)
                 .map((number) => lookupFirst(row, [`variant_image_${number}`]))
                 .filter(Boolean);
             const variant = {

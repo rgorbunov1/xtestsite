@@ -12,6 +12,13 @@ const IMAGE_COLUMNS = new Set([
     'variant_image_1',
     'variant_image_2',
     'variant_image_3',
+    'variant_image_4',
+    'variant_image_5',
+    'variant_image_6',
+    'variant_image_7',
+    'variant_image_8',
+    'variant_image_9',
+    'variant_image_10',
 ]);
 
 function normalizeValue(value) {
@@ -41,7 +48,7 @@ async function readProductExtraWorkbook(workbookPath, rootDir, expectedHeaders) 
     const worksheet = workbook.getWorksheet('Товары') || workbook.worksheets[0];
     if (!worksheet || worksheet.rowCount < 2) return [];
 
-    const headers = expectedHeaders || worksheet.getRow(1).values.slice(1).map(normalizeValue);
+    const headers = worksheet.getRow(1).values.slice(1).map(normalizeValue);
     const rows = [];
     for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber += 1) {
         const worksheetRow = worksheet.getRow(rowNumber);

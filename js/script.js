@@ -1348,56 +1348,229 @@ function renderProduct(product) {
     const gallery = document.createElement('div');
     gallery.className = 'product-page__gallery';
 
-    const img = document.createElement('img');
-    img.src = product.image;
-    img.alt = product.alt || product.name || '';
-    img.loading = 'lazy';
+    const galleryStage = document.createElement('div');
+    galleryStage.className = 'product-page__gallery-stage';
+    const galleryOpenButton = document.createElement('button');
+    galleryOpenButton.type = 'button';
+    galleryOpenButton.className = 'product-page__gallery-open';
+    galleryOpenButton.setAttribute('aria-label', 'Открыть фотографии товара');
+    const galleryPrevious = document.createElement('button');
+    galleryPrevious.type = 'button';
+    galleryPrevious.className = 'product-page__gallery-nav product-page__gallery-nav--prev';
+    galleryPrevious.setAttribute('aria-label', 'Предыдущее фото');
+    galleryPrevious.textContent = '‹';
+    const galleryNext = document.createElement('button');
+    galleryNext.type = 'button';
+    galleryNext.className = 'product-page__gallery-nav product-page__gallery-nav--next';
+    galleryNext.setAttribute('aria-label', 'Следующее фото');
+    galleryNext.textContent = '›';
+    const galleryThumbnails = document.createElement('div');
+    galleryThumbnails.className = 'product-page__gallery-thumbnails';
+    galleryStage.appendChild(galleryOpenButton);
+    galleryStage.appendChild(galleryPrevious);
+    galleryStage.appendChild(galleryNext);
+    gallery.appendChild(galleryStage);
+    gallery.appendChild(galleryThumbnails);
 
-    let galleryPlaceholderShown = false;
-    let galleryPlaceholder = null;
-    function showGalleryPlaceholder() {
-        if (galleryPlaceholderShown) return;
-        galleryPlaceholderShown = true;
+    const lightbox = document.createElement('div');
+    lightbox.className = 'product-lightbox';
+    lightbox.hidden = true;
+    lightbox.setAttribute('role', 'dialog');
+    lightbox.setAttribute('aria-modal', 'true');
+    lightbox.setAttribute('aria-label', 'Фотографии товара');
+    const lightboxStage = document.createElement('div');
+    lightboxStage.className = 'product-lightbox__stage';
+    const lightboxImage = document.createElement('img');
+    lightboxImage.className = 'product-lightbox__image';
+    lightboxImage.alt = product.name || '';
+    const lightboxClose = document.createElement('button');
+    lightboxClose.type = 'button';
+    lightboxClose.className = 'product-lightbox__close';
+    lightboxClose.setAttribute('aria-label', 'Закрыть просмотр');
+    lightboxClose.textContent = '×';
+    const lightboxPrevious = document.createElement('button');
+    lightboxPrevious.type = 'button';
+    lightboxPrevious.className = 'product-lightbox__nav product-lightbox__nav--prev';
+    lightboxPrevious.setAttribute('aria-label', 'Предыдущее фото');
+    lightboxPrevious.textContent = '‹';
+    const lightboxNext = document.createElement('button');
+    lightboxNext.type = 'button';
+    lightboxNext.className = 'product-lightbox__nav product-lightbox__nav--next';
+    lightboxNext.setAttribute('aria-label', 'Следующее фото');
+    lightboxNext.textContent = '›';
+    const lightboxToolbar = document.createElement('div');
+    lightboxToolbar.className = 'product-lightbox__toolbar';
+    const zoomOut = document.createElement('button');
+    zoomOut.type = 'button';
+    zoomOut.setAttribute('aria-label', 'Уменьшить фото');
+    zoomOut.textContent = '−';
+    const zoomLevel = document.createElement('span');
+    zoomLevel.className = 'product-lightbox__zoom-level';
+    const zoomIn = document.createElement('button');
+    zoomIn.type = 'button';
+    zoomIn.setAttribute('aria-label', 'Увеличить фото');
+    zoomIn.textContent = '+';
+    lightboxToolbar.append(zoomOut, zoomLevel, zoomIn);
+    lightboxStage.append(lightboxImage, lightboxPrevious, lightboxNext, lightboxClose, lightboxToolbar);
+    lightbox.appendChild(lightboxStage);
+    document.body.appendChild(lightbox);
 
-        if (img.parentNode) {
-            img.remove();
-        }
+    let galleryImages = [];
+    let currentGalleryIndex = 0;
+    let zoomScale = 1;
+    let touchStartX = null;
 
-        gallery.classList.add('product-page__gallery--placeholder');
-        const text = document.createElement('span');
-        text.className = 'product-page__placeholder-text';
-        text.textContent = product.name || 'Фото товара';
-        galleryPlaceholder = text;
-        gallery.appendChild(text);
+    function updateLightbox() {
+        const imagePath = galleryImages[currentGalleryIndex];
+        if (!imagePath) return;
+        lightboxImage.src = resolveAssetPath(imagePath);
+        lightboxImage.style.transform = 'scale(' + zoomScale + ')';
+        zoomLevel.textContent = Math.round(zoomScale * 100) + '%';
+        const hasMultipleImages = galleryImages.length > 1;
+        lightboxPrevious.hidden = !hasMultipleImages;
+        lightboxNext.hidden = !hasMultipleImages;
     }
 
-    function setGalleryImage(imagePath) {
-        if (!imagePath || imagePath === 'img/no-image.jpg') {
-            showGalleryPlaceholder();
+    function renderGallery() {
+        galleryOpenButton.replaceChildren();
+        galleryThumbnails.replaceChildren();
+        const imagePath = galleryImages[currentGalleryIndex];
+        const hasMultipleImages = galleryImages.length > 1;
+        gallery.classList.toggle('product-page__gallery--placeholder', !imagePath);
+        galleryPrevious.hidden = !hasMultipleImages;
+        galleryNext.hidden = !hasMultipleImages;
+        galleryOpenButton.disabled = !imagePath;
+
+        if (!imagePath) {
+            const placeholder = document.createElement('span');
+            placeholder.className = 'product-page__placeholder-text';
+            placeholder.textContent = product.name || 'Фото товара';
+            galleryOpenButton.appendChild(placeholder);
             return;
         }
 
-        galleryPlaceholderShown = false;
-        gallery.classList.remove('product-page__gallery--placeholder');
-        if (galleryPlaceholder) {
-            galleryPlaceholder.remove();
-            galleryPlaceholder = null;
-        }
-        if (!img.parentNode) {
-            gallery.appendChild(img);
-        }
-        img.src = resolveAssetPath(imagePath);
+        const image = document.createElement('img');
+        image.src = resolveAssetPath(imagePath);
+        image.alt = product.alt || product.name || '';
+        image.loading = 'lazy';
+        image.addEventListener('error', function () {
+            image.remove();
+            if (!galleryOpenButton.querySelector('img')) {
+                const placeholder = document.createElement('span');
+                placeholder.className = 'product-page__placeholder-text';
+                placeholder.textContent = product.name || 'Фото товара';
+                galleryOpenButton.appendChild(placeholder);
+            }
+        });
+        galleryOpenButton.appendChild(image);
+
+        if (lightbox && !lightbox.hidden) updateLightbox();
+
+        galleryImages.forEach(function (thumbnailPath, index) {
+            const thumbnail = document.createElement('button');
+            thumbnail.type = 'button';
+            thumbnail.className = 'product-page__gallery-thumbnail';
+            thumbnail.classList.toggle('is-active', index === currentGalleryIndex);
+            thumbnail.setAttribute('aria-label', 'Показать фото ' + (index + 1));
+            thumbnail.setAttribute('aria-pressed', String(index === currentGalleryIndex));
+            const thumbnailImage = document.createElement('img');
+            thumbnailImage.src = resolveAssetPath(thumbnailPath);
+            thumbnailImage.alt = '';
+            thumbnailImage.loading = 'lazy';
+            thumbnail.appendChild(thumbnailImage);
+            thumbnail.addEventListener('click', function () {
+                currentGalleryIndex = index;
+                zoomScale = 1;
+                renderGallery();
+            });
+            galleryThumbnails.appendChild(thumbnail);
+        });
     }
 
-    img.addEventListener('error', function () {
-        showGalleryPlaceholder();
+    function setGalleryItem(item) {
+        const candidateImages = [item && item.image]
+            .concat(item && Array.isArray(item.gallery) ? item.gallery : [])
+            .filter(function (imagePath) {
+                return imagePath && imagePath !== 'img/no-image.jpg';
+            });
+        const uniqueImages = Array.from(new Set(candidateImages));
+        const productImages = [product.image]
+            .concat(Array.isArray(product.gallery) ? product.gallery : [])
+            .filter(function (imagePath) {
+                return imagePath && imagePath !== 'img/no-image.jpg';
+            });
+        galleryImages = uniqueImages.length ? uniqueImages : Array.from(new Set(productImages));
+        currentGalleryIndex = 0;
+        zoomScale = 1;
+        renderGallery();
+    }
+
+    function moveGallery(step) {
+        if (galleryImages.length < 2) return;
+        currentGalleryIndex = (currentGalleryIndex + step + galleryImages.length) % galleryImages.length;
+        zoomScale = 1;
+        renderGallery();
+    }
+
+    function openLightbox() {
+        if (!galleryImages.length) return;
+        lightbox.hidden = false;
+        document.body.classList.add('product-lightbox-open');
+        updateLightbox();
+        lightboxClose.focus();
+    }
+
+    function closeLightbox() {
+        lightbox.hidden = true;
+        document.body.classList.remove('product-lightbox-open');
+        galleryOpenButton.focus();
+    }
+
+    galleryOpenButton.addEventListener('click', openLightbox);
+    galleryPrevious.addEventListener('click', function () { moveGallery(-1); });
+    galleryNext.addEventListener('click', function () { moveGallery(1); });
+    lightboxPrevious.addEventListener('click', function () { moveGallery(-1); });
+    lightboxNext.addEventListener('click', function () { moveGallery(1); });
+    lightboxClose.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', function (event) {
+        if (event.target === lightbox) closeLightbox();
+    });
+    zoomIn.addEventListener('click', function () {
+        zoomScale = Math.min(zoomScale + 0.5, 3);
+        updateLightbox();
+    });
+    zoomOut.addEventListener('click', function () {
+        zoomScale = Math.max(zoomScale - 0.5, 1);
+        updateLightbox();
+    });
+    lightboxImage.addEventListener('dblclick', function () {
+        zoomScale = zoomScale === 1 ? 2 : 1;
+        updateLightbox();
+    });
+    lightboxStage.addEventListener('touchstart', function (event) {
+        if (event.touches.length === 1) touchStartX = event.touches[0].clientX;
+    }, { passive: true });
+    lightboxStage.addEventListener('touchend', function (event) {
+        if (touchStartX === null || event.changedTouches.length !== 1) return;
+        const swipeDistance = event.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(swipeDistance) > 48) moveGallery(swipeDistance > 0 ? -1 : 1);
+        touchStartX = null;
+    }, { passive: true });
+    document.addEventListener('keydown', function (event) {
+        if (lightbox.hidden) return;
+        if (event.key === 'Escape') closeLightbox();
+        else if (event.key === 'ArrowLeft') moveGallery(-1);
+        else if (event.key === 'ArrowRight') moveGallery(1);
+        else if (event.key === '+' || event.key === '=') {
+            zoomScale = Math.min(zoomScale + 0.5, 3);
+            updateLightbox();
+        } else if (event.key === '-') {
+            zoomScale = Math.max(zoomScale - 0.5, 1);
+            updateLightbox();
+        }
     });
 
-    gallery.appendChild(img);
-
-    if (product.image === 'img/no-image.jpg') {
-        showGalleryPlaceholder();
-    }
+    setGalleryItem(product);
 
     const info = document.createElement('div');
     info.className = 'product-page__info';
@@ -1496,14 +1669,14 @@ function renderProduct(product) {
                     priceWrap.appendChild(discountBadge);
                 }
 
-                setGalleryImage(variant.image || product.image);
+                setGalleryItem(variant);
                 updateStockBlock(variant);
                 renderVariantSpecs(variant);
             }
         });
 
         selectedVariant = availableVariants[0];
-        setGalleryImage(selectedVariant.image || product.image);
+        setGalleryItem(selectedVariant);
     } else if (!productHasAnyStock(product)) {
         if (productContainer) {
             productContainer.innerHTML = '';
