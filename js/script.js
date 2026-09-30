@@ -1154,8 +1154,8 @@ const heroSlides = Array.from(document.querySelectorAll('.hero-slide'));
 
 if (heroSlides.length > 0) {
     let currentSlide = 0;
-    const prevBtn = document.querySelector('.hero-carousel__arrow--prev');
-    const nextBtn = document.querySelector('.hero-carousel__arrow--next');
+    const prevButtons = Array.from(document.querySelectorAll('.hero-carousel__arrow--prev'));
+    const nextButtons = Array.from(document.querySelectorAll('.hero-carousel__arrow--next'));
     const autoplayDelay = 6000;
     let autoplayTimer = null;
 
@@ -1176,18 +1176,82 @@ if (heroSlides.length > 0) {
             const isActive = slideIndex === currentSlide;
             slide.classList.toggle('is-active', isActive);
             slide.setAttribute('aria-hidden', String(!isActive));
+            slide.querySelectorAll('.hero-slide__mobile-controls button').forEach(function (button) {
+                button.tabIndex = isActive ? 0 : -1;
+            });
         });
     }
 
-    prevBtn?.addEventListener('click', function () {
-        showSlide(currentSlide - 1);
-        restartAutoplay();
+    function populateHeroSlides(products) {
+        heroSlides.forEach(function (slide) {
+            const productId = (slide.dataset.productId || '').trim();
+            if (!productId) return;
+
+            const product = products.find(function (item) {
+                return item.id === productId;
+            });
+            if (!product) return;
+
+            const imageLink = slide.querySelector('.hero-slide__image-link');
+            const image = imageLink?.querySelector('img');
+            const categoryButton = slide.querySelector('.hero-slide__actions a');
+            const productName = slide.querySelector('[data-product-name]');
+            const category = product.category || (product.categories && product.categories[0]) || '';
+            const variantImage = getAvailableVariants(product).map(function (variant) {
+                return variant.image;
+            }).find(function (imagePath) {
+                return imagePath && imagePath !== 'img/no-image.jpg';
+            });
+            const imagePath = product.image && product.image !== 'img/no-image.jpg'
+                ? product.image
+                : variantImage;
+
+            slide.dataset.category = category;
+
+            if (imageLink) {
+                imageLink.href = 'product.html?id=' + encodeURIComponent(product.id);
+                imageLink.dataset.productId = product.id;
+            }
+            if (image && imagePath) {
+                image.src = resolveAssetPath(imagePath);
+                image.alt = product.alt || product.name || '';
+            }
+            if (productName) {
+                productName.textContent = product.name || '';
+            }
+            if (categoryButton) {
+                if (category) {
+                    categoryButton.href = 'catalog.html?category=' + encodeURIComponent(category);
+                    categoryButton.dataset.category = category;
+                } else {
+                    categoryButton.href = 'catalog.html';
+                    delete categoryButton.dataset.category;
+                }
+            }
+        });
+    }
+
+    loadCatalogData()
+        .then(populateHeroSlides)
+        .catch(function (error) {
+            console.error('Ошибка загрузки товаров для слайдера:', error);
+        });
+
+    prevButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            showSlide(currentSlide - 1);
+            restartAutoplay();
+        });
     });
 
-    nextBtn?.addEventListener('click', function () {
-        showSlide(currentSlide + 1);
-        restartAutoplay();
+    nextButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            showSlide(currentSlide + 1);
+            restartAutoplay();
+        });
     });
+
+    showSlide(currentSlide);
 
     document.addEventListener('click', function (event) {
         const categoryButton = event.target.closest('[data-category]');

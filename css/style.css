@@ -1023,6 +1023,10 @@ img {
     margin-top: 8px;
 }
 
+.hero-slide__mobile-controls {
+    display: none;
+}
+
 .hero-carousel__arrow {
     width: 48px;
     height: 48px;
@@ -2026,6 +2030,10 @@ img {
         gap: 12px;
     }
 
+    .hero-carousel > .hero-carousel__arrow {
+        display: none;
+    }
+
     .hero-carousel__viewport {
         width: 100%;
     }
@@ -2042,7 +2050,7 @@ img {
     .hero__text {
         max-width: 100%;
         width: 100%;
-        order: 2;
+        order: 3;
     }
 
     .hero__image {
@@ -2058,8 +2066,17 @@ img {
         margin-top: 0;
     }
 
-    .hero-carousel__arrow {
-        align-self: center;
+    .hero-slide__mobile-controls {
+        display: flex;
+        order: 2;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        width: 100%;
+    }
+
+    .hero-slide__mobile-controls .hero-carousel__arrow {
+        flex: 0 0 48px;
     }
 
     .hero__inner {
