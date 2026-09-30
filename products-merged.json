@@ -91,8 +91,11 @@
             "qty": 12
           }
         ],
-        "image": "",
-        "gallery": []
+        "image": "https://sprinter-opt.ru/img/catalog/big/01207_Бело-синие%20БС_1.jpg",
+        "gallery": [
+          "https://sprinter-opt.ru/img/catalog/big/01207_Бело-синие%20БС_1.jpg"
+        ],
+        "discountPercent": 10
       },
       {
         "id": "a72526b5-494a-11f1-9495-345a60486491",
@@ -127,6 +130,9 @@
         "image": "",
         "gallery": []
       }
+    ],
+    "gallery": [
+      "https://sprinter-opt.ru/img/catalog/big/01207_Бело-синие%20БС_1.jpg"
     ]
   },
   {
