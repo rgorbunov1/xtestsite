@@ -34258,6 +34258,49 @@
 		]
 	},
 	{
+		"id": "2cb256bb-bc99-11f1-8d7b-803049633648",
+		"name": "Велосипед-хулисипед 2.0",
+		"description": "",
+		"price": 2000000,
+		"article": "",
+		"category": "Велосипеды",
+		"categories": [
+			"Велосипеды",
+			"Tech Team",
+			"БМХ"
+		],
+		"image": "img/no-image.jpg",
+		"alt": "Велосипед-хулисипед 2.0",
+		"stockByWarehouse": [],
+		"stock": 1,
+		"variants": [
+			{
+				"id": "2cb256bc-bc99-11f1-8d7b-803049633648",
+				"name": "Серо-буро-малиновый",
+				"price": 2000000,
+				"stock": 1,
+				"stockByWarehouse": [
+					{
+						"name": "На складе",
+						"qty": 0
+					},
+					{
+						"name": "Парк",
+						"qty": 1
+					},
+					{
+						"name": "Меркурий (С остатками)",
+						"qty": 0
+					},
+					{
+						"name": "Нижний Новгород",
+						"qty": 0
+					}
+				]
+			}
+		]
+	},
+	{
 		"id": "af87aa4b-ceec-11ed-9747-2c56dc9bb924",
 		"name": "ВелосипедVARMA GTI Cambodia 29\"х19,ск.21,д,ал.",
 		"description": "",
