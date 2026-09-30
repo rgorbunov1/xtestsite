@@ -185,7 +185,7 @@ function buildExtraIndex(rows) {
 
         const entry = entries.get(productId);
         const mainImage = lookupFirst(row, ['main_image', 'image', 'product_image']);
-        if (mainImage) {
+        if (mainImage && (mainImage !== 'img/no-image.jpg' || !entry.image)) {
             entry.image = mainImage;
         }
 
