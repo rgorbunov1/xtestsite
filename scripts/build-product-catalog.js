@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const ExcelJS = require('exceljs');
+const { readProductExtraWorkbook } = require('./product-extra-workbook');
 
 const rootDir = path.resolve(__dirname, '..');
 const productsPath = path.join(rootDir, 'products.json');
@@ -127,35 +127,9 @@ function parseSpecs(row, prefix = 'spec') {
     return specs;
 }
 
-function cellToValue(cell) {
-    const value = cell.value;
-    if (value === null || value === undefined) return '';
-    if (typeof value === 'object') {
-        if (Array.isArray(value.richText)) return value.richText.map((item) => item.text).join('');
-        if (value.result !== undefined) return value.result;
-        return cell.text || '';
-    }
-    return value;
-}
-
 async function extractExtraRows() {
     if (fs.existsSync(extraWorkbookPath)) {
-        const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.readFile(extraWorkbookPath);
-        const worksheet = workbook.getWorksheet('Товары') || workbook.worksheets[0];
-        if (!worksheet || worksheet.rowCount < 2) return [];
-
-        const headers = worksheet.getRow(1).values.slice(1).map(normalizeValue);
-        const rows = [];
-        for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber += 1) {
-            const worksheetRow = worksheet.getRow(rowNumber);
-            const row = {};
-            headers.forEach((header, index) => {
-                if (header) row[header] = cellToValue(worksheetRow.getCell(index + 1));
-            });
-            rows.push(row);
-        }
-        return rows;
+        return readProductExtraWorkbook(extraWorkbookPath, rootDir);
     }
 
     if (!fs.existsSync(extraCsvPath)) return [];
