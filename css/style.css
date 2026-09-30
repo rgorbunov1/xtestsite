@@ -1374,6 +1374,36 @@ img {
     margin-top: 16px;
 }
 
+.catalog-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: flex-end;
+    gap: 14px;
+    margin: -18px 0 24px;
+}
+
+.catalog-control {
+    display: grid;
+    gap: 6px;
+    min-width: 210px;
+    color: var(--color-gray);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.catalog-control select {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 34px 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: var(--color-white);
+    color: var(--color-dark);
+    font: inherit;
+    font-size: 14px;
+}
+
 .scroll-sentinel {
     height: 60px;
     pointer-events: none;
@@ -2242,6 +2272,22 @@ a.product-page__stock-location:focus-visible {
         border-bottom: 2px solid currentColor;
         transform: rotate(45deg) translateX(1px);
         margin-left: 3px;
+    }
+
+    .catalog-controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin: -20px 0 24px;
+    }
+
+    .catalog-control {
+        min-width: 0;
+    }
+
+    .catalog-control select {
+        padding-left: 8px;
+        font-size: 13px;
     }
 
     .hero-carousel {

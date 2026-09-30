@@ -78,6 +78,23 @@
                     </div>
                 </div>
 
+                <div class="catalog-controls" aria-label="Сортировка и наличие товаров">
+                    <label class="catalog-control" for="catalogPriceSort">
+                        <span>Цена</span>
+                        <select id="catalogPriceSort">
+                            <option value="default">По умолчанию</option>
+                            <option value="price-asc">Сначала дешевле</option>
+                            <option value="price-desc">Сначала дороже</option>
+                        </select>
+                    </label>
+                    <label class="catalog-control" for="catalogWarehouseFilter">
+                        <span>Наличие в магазине</span>
+                        <select id="catalogWarehouseFilter">
+                            <option value="">Все магазины</option>
+                        </select>
+                    </label>
+                </div>
+
                 <!-- РЕЗУЛЬТАТЫ ПОИСКА -->
                 <div id="searchResultInfo"></div>
 

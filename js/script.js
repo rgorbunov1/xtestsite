@@ -160,6 +160,8 @@ let CURRENT_FILTER_STATE = {
     category: null,
     refine: null,
 };
+let CURRENT_PRICE_SORT = 'default';
+let CURRENT_STOCK_WAREHOUSE = '';
 let RENDERED_COUNT = 0;
 let IS_RENDERING_BATCH = false;
 let INFINITE_OBSERVER = null;
@@ -284,11 +286,75 @@ function productMatchesFilter(product) {
     return true;
 }
 
+function productHasStockAtWarehouse(product, warehouseName) {
+    if (!warehouseName) return true;
+    const stockItems = Array.isArray(product.variants) && product.variants.length
+        ? product.variants
+        : [product];
+
+    return stockItems.some(function (item) {
+        return Array.isArray(item.stockByWarehouse) && item.stockByWarehouse.some(function (warehouse) {
+            return warehouse.name === warehouseName && Number(warehouse.qty) > 0;
+        });
+    });
+}
+
 function getFilteredProducts() {
-    return ALL_PRODUCTS.filter(function (product) {
+    const filtered = ALL_PRODUCTS.filter(function (product) {
         return productHasAnyStock(product)
             && productMatchesFilter(product)
+            && productHasStockAtWarehouse(product, CURRENT_STOCK_WAREHOUSE)
             && productMatchesSearch(product, CURRENT_SEARCH_QUERY);
+    });
+
+    if (CURRENT_PRICE_SORT === 'price-asc') {
+        filtered.sort(function (a, b) {
+            return getDiscountInfo(a.price, a.discountPercent, a.discountAmount).finalPrice
+                - getDiscountInfo(b.price, b.discountPercent, b.discountAmount).finalPrice;
+        });
+    } else if (CURRENT_PRICE_SORT === 'price-desc') {
+        filtered.sort(function (a, b) {
+            return getDiscountInfo(b.price, b.discountPercent, b.discountAmount).finalPrice
+                - getDiscountInfo(a.price, a.discountPercent, a.discountAmount).finalPrice;
+        });
+    }
+
+    return filtered;
+}
+
+function initCatalogControls(products) {
+    const priceSort = document.getElementById('catalogPriceSort');
+    const warehouseFilter = document.getElementById('catalogWarehouseFilter');
+    if (!priceSort || !warehouseFilter) return;
+
+    const warehouses = new Set();
+    products.forEach(function (product) {
+        const stockItems = Array.isArray(product.variants) && product.variants.length
+            ? product.variants
+            : [product];
+        stockItems.forEach(function (item) {
+            (item.stockByWarehouse || []).forEach(function (warehouse) {
+                if (warehouse.name) warehouses.add(warehouse.name);
+            });
+        });
+    });
+
+    Array.from(warehouses).sort(function (a, b) {
+        return a.localeCompare(b, 'ru');
+    }).forEach(function (name) {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        warehouseFilter.appendChild(option);
+    });
+
+    priceSort.addEventListener('change', function () {
+        CURRENT_PRICE_SORT = priceSort.value;
+        renderInitialProducts();
+    });
+    warehouseFilter.addEventListener('change', function () {
+        CURRENT_STOCK_WAREHOUSE = warehouseFilter.value;
+        renderInitialProducts();
     });
 }
 
@@ -345,7 +411,7 @@ function renderInitialProducts() {
     renderMoreProducts();
 
     const filtered = getFilteredProducts();
-    if (filtered.length === 0 && (CURRENT_SEARCH_QUERY || CURRENT_FILTER_STATE.type !== 'all')) {
+    if (filtered.length === 0 && (CURRENT_SEARCH_QUERY || CURRENT_FILTER_STATE.type !== 'all' || CURRENT_STOCK_WAREHOUSE)) {
         showNoResults();
     }
 }
@@ -700,6 +766,7 @@ if (productsContainer) {
         .then(function (products) {
             ALL_PRODUCTS = products;
 
+            initCatalogControls(products);
             initFilters(products);
             initInfiniteScroll();
             updateSearchResultInfo();
@@ -1901,7 +1968,7 @@ function updateStockBlock(item) {
 
     const title = document.createElement('p');
     title.className = 'product-page__stock-title';
-    title.textContent = 'Наличие на складах:';
+    title.textContent = 'Наличие на складах: (нажми, чтобы открыть на карте)';
     stockBlock.appendChild(title);
 
     const list = document.createElement('ul');
