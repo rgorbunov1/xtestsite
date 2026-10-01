@@ -167,6 +167,8 @@ function saveCatalogSessionState() {
             searchQuery: CURRENT_SEARCH_QUERY,
             filterState: CURRENT_FILTER_STATE,
             categoryRefines: CURRENT_CATEGORY_REFINES,
+            partWheelDiameters: CURRENT_PART_WHEEL_DIAMETERS,
+            scooterWheelDiameters: CURRENT_SCOOTER_WHEEL_DIAMETERS,
             priceSort: CURRENT_PRICE_SORT,
             wheelDiameters: CURRENT_WHEEL_DIAMETERS,
             stockWarehouses: CURRENT_STOCK_WAREHOUSES,
@@ -187,6 +189,8 @@ let CURRENT_FILTER_STATE = Object.assign({
     refine: null,
 }, SAVED_CATALOG_STATE.filterState || {});
 let CURRENT_CATEGORY_REFINES = Array.isArray(SAVED_CATALOG_STATE.categoryRefines) ? SAVED_CATALOG_STATE.categoryRefines : [];
+let CURRENT_PART_WHEEL_DIAMETERS = Array.isArray(SAVED_CATALOG_STATE.partWheelDiameters) ? SAVED_CATALOG_STATE.partWheelDiameters : [];
+let CURRENT_SCOOTER_WHEEL_DIAMETERS = Array.isArray(SAVED_CATALOG_STATE.scooterWheelDiameters) ? SAVED_CATALOG_STATE.scooterWheelDiameters : [];
 let CURRENT_PRICE_SORT = SAVED_CATALOG_STATE.priceSort || 'default';
 let CURRENT_WHEEL_DIAMETERS = Array.isArray(SAVED_CATALOG_STATE.wheelDiameters) ? SAVED_CATALOG_STATE.wheelDiameters : [];
 let CURRENT_STOCK_WAREHOUSES = Array.isArray(SAVED_CATALOG_STATE.stockWarehouses)
@@ -324,6 +328,12 @@ function productMatchesFilter(product) {
         return state.type !== 'bike-brand' || getBikeBrand(product) === state.bikeBrand;
     }
 
+    if (state.type === 'scooter-subcategory') {
+        return product.category === 'Самокаты'
+            && Array.isArray(product.categories)
+            && product.categories[1] === state.subCategory;
+    }
+
     if (state.type === 'categories') {
         return state.categories.indexOf(product.category || '') !== -1;
     }
@@ -337,8 +347,26 @@ function productMatchesFilter(product) {
 
     if (state.type === 'category-refine-multi') {
         const catMatch = (product.category || '') === state.category;
-        const refineVal = (product.categories && product.categories[1]) || '';
-        return catMatch && (!CURRENT_CATEGORY_REFINES.length || CURRENT_CATEGORY_REFINES.includes(refineVal));
+        const productCategories = Array.isArray(product.categories) ? product.categories : [];
+        const subCategoryMatch = !state.subCategory || (state.subCategory === 'Самокаты'
+            ? productCategories[1] !== 'Запчасти для самокатов' && productCategories[1] !== 'Сумки для самокатов'
+            : productCategories[1] === state.subCategory);
+        const refineIndex = Number.isInteger(state.refineIndex) ? state.refineIndex : 1;
+        const refineVal = productCategories[refineIndex] || '';
+        const refineMatch = !CURRENT_CATEGORY_REFINES.length || CURRENT_CATEGORY_REFINES.includes(refineVal);
+        const partDiameterMatch = !PART_WHEEL_DIAMETER_CATEGORIES.has(refineVal)
+            || !CURRENT_PART_WHEEL_DIAMETERS.length
+            || getPartWheelDiameters(product.name).some(function (diameter) {
+                return CURRENT_PART_WHEEL_DIAMETERS.includes(diameter);
+            });
+        const scooterDiameterMatch = state.category !== 'Самокаты'
+            || state.subCategory !== 'Запчасти для самокатов'
+            || refineVal !== 'Колёса'
+            || !CURRENT_SCOOTER_WHEEL_DIAMETERS.length
+            || getScooterWheelDiameters(product).some(function (diameter) {
+                return CURRENT_SCOOTER_WHEEL_DIAMETERS.includes(diameter);
+            });
+        return catMatch && subCategoryMatch && refineMatch && partDiameterMatch && scooterDiameterMatch;
     }
 
     return true;
@@ -505,12 +533,107 @@ function updateWheelDiameterFilter() {
     });
 }
 
+function updatePartWheelDiameterFilter() {
+    const filter = document.getElementById('catalogPartWheelDiameterFilter');
+    const options = document.getElementById('catalogPartWheelDiameterOptions');
+    if (!filter || !options) return;
+
+    const diameterProducts = ALL_PRODUCTS.filter(function (product) {
+        const refine = (product.categories && product.categories[1]) || '';
+        return product.category === CURRENT_FILTER_STATE.category
+            && CURRENT_CATEGORY_REFINES.includes(refine)
+            && PART_WHEEL_DIAMETER_CATEGORIES.has(refine);
+    });
+    const availableDiameters = SUPPORTED_PART_WHEEL_DIAMETERS.filter(function (diameter) {
+        return diameterProducts.some(function (product) {
+            return getPartWheelDiameters(product.name).includes(diameter);
+        });
+    });
+
+    const isActive = isPartWheelDiameterFilterActive() && availableDiameters.length > 0;
+    if (!isActive) CURRENT_PART_WHEEL_DIAMETERS = [];
+    CURRENT_PART_WHEEL_DIAMETERS = CURRENT_PART_WHEEL_DIAMETERS.filter(function (diameter) {
+        return availableDiameters.includes(Number(diameter));
+    });
+    filter.hidden = !isActive;
+    updateMultiFilterSelection('partWheelDiameterSelection', CURRENT_PART_WHEEL_DIAMETERS.length);
+    options.innerHTML = '';
+
+    availableDiameters.forEach(function (diameter, index) {
+        const label = document.createElement('label');
+        label.className = 'catalog-multi-filter__option';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'catalogPartWheelDiameterOption-' + index;
+        checkbox.value = String(diameter);
+        checkbox.checked = CURRENT_PART_WHEEL_DIAMETERS.includes(diameter);
+        checkbox.addEventListener('change', function () {
+            CURRENT_PART_WHEEL_DIAMETERS = Array.from(options.querySelectorAll('input:checked')).map(function (input) {
+                return Number(input.value);
+            });
+            updateMultiFilterSelection('partWheelDiameterSelection', CURRENT_PART_WHEEL_DIAMETERS.length);
+            renderInitialProducts();
+        });
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(diameter + '"'));
+        options.appendChild(label);
+    });
+}
+
+function updateScooterWheelDiameterFilter() {
+    const filter = document.getElementById('catalogScooterWheelDiameterFilter');
+    const options = document.getElementById('catalogScooterWheelDiameterOptions');
+    if (!filter || !options) return;
+
+    const wheelProducts = ALL_PRODUCTS.filter(function (product) {
+        return product.category === 'Самокаты'
+            && product.categories
+            && product.categories[1] === 'Запчасти для самокатов'
+            && product.categories[2] === 'Колёса';
+    });
+    const availableDiameters = Array.from(new Set(wheelProducts.reduce(function (diameters, product) {
+        return diameters.concat(getScooterWheelDiameters(product));
+    }, []))).sort(function (leftDiameter, rightDiameter) { return leftDiameter - rightDiameter; });
+
+    const isActive = isScooterWheelDiameterFilterActive() && availableDiameters.length > 0;
+    if (!isActive) CURRENT_SCOOTER_WHEEL_DIAMETERS = [];
+    CURRENT_SCOOTER_WHEEL_DIAMETERS = CURRENT_SCOOTER_WHEEL_DIAMETERS.filter(function (diameter) {
+        return availableDiameters.includes(Number(diameter));
+    });
+    filter.hidden = !isActive;
+    updateMultiFilterSelection('scooterWheelDiameterSelection', CURRENT_SCOOTER_WHEEL_DIAMETERS.length);
+    options.innerHTML = '';
+
+    availableDiameters.forEach(function (diameter, index) {
+        const label = document.createElement('label');
+        label.className = 'catalog-multi-filter__option';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'catalogScooterWheelDiameterOption-' + index;
+        checkbox.value = String(diameter);
+        checkbox.checked = CURRENT_SCOOTER_WHEEL_DIAMETERS.includes(diameter);
+        checkbox.addEventListener('change', function () {
+            CURRENT_SCOOTER_WHEEL_DIAMETERS = Array.from(options.querySelectorAll('input:checked')).map(function (input) {
+                return Number(input.value);
+            });
+            updateMultiFilterSelection('scooterWheelDiameterSelection', CURRENT_SCOOTER_WHEEL_DIAMETERS.length);
+            renderInitialProducts();
+        });
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(diameter + ' мм'));
+        options.appendChild(label);
+    });
+}
+
 function initCatalogControls(products) {
     const priceSort = document.getElementById('catalogPriceSort');
     const warehouseFilter = document.getElementById('catalogWarehouseFilter');
     const warehouseOptions = document.getElementById('catalogWarehouseOptions');
     const clearWarehouseFilter = document.getElementById('clearWarehouseFilter');
     const clearWheelDiameterFilter = document.getElementById('clearWheelDiameterFilter');
+    const clearPartWheelDiameterFilter = document.getElementById('clearPartWheelDiameterFilter');
+    const clearScooterWheelDiameterFilter = document.getElementById('clearScooterWheelDiameterFilter');
+    const clearAllCatalogFilters = document.getElementById('clearAllCatalogFilters');
     if (!priceSort || !warehouseFilter || !warehouseOptions) return;
 
     if (!document.documentElement.dataset.catalogMultiFilterDismissBound) {
@@ -591,6 +714,86 @@ function initCatalogControls(products) {
             renderInitialProducts();
         });
     }
+    if (clearPartWheelDiameterFilter) {
+        clearPartWheelDiameterFilter.addEventListener('click', function () {
+            CURRENT_PART_WHEEL_DIAMETERS = [];
+            updateMultiFilterSelection('partWheelDiameterSelection', 0);
+            document.querySelectorAll('#catalogPartWheelDiameterOptions input').forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+            renderInitialProducts();
+        });
+    }
+    if (clearScooterWheelDiameterFilter) {
+        clearScooterWheelDiameterFilter.addEventListener('click', function () {
+            CURRENT_SCOOTER_WHEEL_DIAMETERS = [];
+            updateMultiFilterSelection('scooterWheelDiameterSelection', 0);
+            document.querySelectorAll('#catalogScooterWheelDiameterOptions input').forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+            renderInitialProducts();
+        });
+    }
+    if (clearAllCatalogFilters) {
+        clearAllCatalogFilters.addEventListener('click', function () {
+            CURRENT_SEARCH_QUERY = '';
+            CURRENT_FILTER_STATE = {
+                type: 'all',
+                categories: [],
+                category: null,
+                refine: null,
+            };
+            CURRENT_CATEGORY_REFINES = [];
+            CURRENT_PART_WHEEL_DIAMETERS = [];
+            CURRENT_SCOOTER_WHEEL_DIAMETERS = [];
+            CURRENT_PRICE_SORT = 'default';
+            CURRENT_WHEEL_DIAMETERS = [];
+            CURRENT_STOCK_WAREHOUSES = [];
+
+            const searchInput = document.getElementById('searchInput');
+            const categoryRefineSearch = document.getElementById('catalogCategoryRefineSearch');
+            if (searchInput) searchInput.value = '';
+            if (categoryRefineSearch) categoryRefineSearch.value = '';
+            if (priceSort) priceSort.value = 'default';
+
+            document.querySelectorAll('.catalog-multi-filter[open]').forEach(function (filter) {
+                filter.open = false;
+            });
+            document.querySelectorAll('.catalog-multi-filter input[type="checkbox"]').forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+            document.querySelectorAll('.catalog-multi-filter__option[hidden]').forEach(function (option) {
+                option.hidden = false;
+            });
+            updateMultiFilterSelection('categoryRefineSelection', 0);
+            updateMultiFilterSelection('partWheelDiameterSelection', 0);
+            updateMultiFilterSelection('scooterWheelDiameterSelection', 0);
+            updateMultiFilterSelection('wheelDiameterSelection', 0);
+            updateMultiFilterSelection('warehouseSelection', 0);
+
+            const filtersTrack = document.getElementById('filtersTrack');
+            if (filtersTrack) {
+                filtersTrack.classList.remove('filters-track--subs', 'filters-track--refine', 'filters-track--bike-brands');
+            }
+            document.querySelectorAll('.filters__btn--active').forEach(function (button) {
+                button.classList.remove('filters__btn--active');
+            });
+            const subfiltersContainer = document.getElementById('subfiltersContainer');
+            const refineContainer = document.getElementById('refineContainer');
+            const bikeBrandContainer = document.getElementById('bikeBrandContainer');
+            if (subfiltersContainer) subfiltersContainer.innerHTML = '';
+            if (refineContainer) refineContainer.innerHTML = '';
+            if (bikeBrandContainer) bikeBrandContainer.innerHTML = '';
+
+            const url = new URL(window.location.href);
+            url.searchParams.delete('category');
+            url.searchParams.delete('search');
+            window.history.replaceState({}, '', url.toString());
+
+            renderInitialProducts();
+            updateSearchResultInfo();
+        });
+    }
 }
 
 // ============================
@@ -643,12 +846,14 @@ function renderInitialProducts() {
 
     const categoryRefineFilter = document.getElementById('catalogCategoryRefineFilter');
     if (categoryRefineFilter) {
-        const categoryRefineIsActive = CURRENT_FILTER_STATE.type === 'category-refine-multi';
+        const categoryRefineIsActive = isCategoryRefineFilterActive();
         categoryRefineFilter.hidden = !categoryRefineIsActive;
         if (!categoryRefineIsActive) categoryRefineFilter.open = false;
     }
 
     updateWheelDiameterFilter();
+    updatePartWheelDiameterFilter();
+    updateScooterWheelDiameterFilter();
     saveCatalogSessionState();
     clearProducts();
     hideNoResults();
@@ -939,6 +1144,7 @@ const CATEGORY_GROUPS = {
         'Запчасти для самокатов',
         'Защита',
         'Шлема',
+        'Сумки для самокатов',
     ],
     'Скейтборды': [
         'Скейтборды',
@@ -1188,7 +1394,11 @@ function initFilters(products) {
     Object.keys(CATEGORY_GROUPS).forEach(function (groupName) {
         const cats = CATEGORY_GROUPS[groupName];
         const presentCats = cats.filter(function (cat) {
-            return productCategories.has(cat);
+            return productCategories.has(cat) || (groupName === 'Самокаты'
+                && SCOOTER_PART_SUBCATEGORIES.has(cat)
+                && products.some(function (product) {
+                    return product.category === 'Самокаты' && product.categories && product.categories[1] === cat;
+                }));
         });
         if (presentCats.length > 0) {
             activeGroups[groupName] = presentCats;
@@ -1226,12 +1436,21 @@ function initFilters(products) {
         refineByCategory[cat].add(refine);
     });
 
-    function updateCategoryRefineOptions(category) {
+    function updateCategoryRefineOptions(category, subCategory, refineIndex) {
         if (!categoryRefineFilter || !categoryRefineOptions) return;
 
-        const isTerminalCategory = category === 'Аксессуары для велосипедов' || category === 'Запчасти';
-        const refines = isTerminalCategory && refineByCategory[category]
-            ? Array.from(refineByCategory[category]).sort(function (left, right) {
+        const isScooterParts = category === 'Самокаты' && subCategory === 'Запчасти для самокатов';
+        const isTerminalCategory = category === 'Аксессуары для велосипедов' || category === 'Запчасти' || isScooterParts;
+        const categoryRefineIndex = isScooterParts ? 2 : (refineIndex || 1);
+        const refineProducts = isScooterParts
+            ? products.filter(function (product) {
+                return product.category === 'Самокаты' && product.categories && product.categories[1] === subCategory;
+            })
+            : products.filter(function (product) { return product.category === category; });
+        const refines = isTerminalCategory
+            ? Array.from(new Set(refineProducts.map(function (product) {
+                return product.categories && product.categories[categoryRefineIndex];
+            }).filter(Boolean))).sort(function (left, right) {
                 return left.localeCompare(right, 'ru');
             })
             : [];
@@ -1259,6 +1478,8 @@ function initFilters(products) {
                     type: 'category-refine-multi',
                     categories: [],
                     category: category,
+                    subCategory: subCategory || null,
+                    refineIndex: categoryRefineIndex,
                     refine: null,
                 };
                 updateMultiFilterSelection('categoryRefineSelection', CURRENT_CATEGORY_REFINES.length);
@@ -1404,6 +1625,25 @@ function initFilters(products) {
             });
         }
 
+        if (groupName === 'Самокаты') {
+            CURRENT_CATEGORY_REFINES = [];
+            CURRENT_PART_WHEEL_DIAMETERS = [];
+            CURRENT_SCOOTER_WHEEL_DIAMETERS = [];
+            CURRENT_FILTER_STATE = {
+                type: 'category-refine-multi',
+                categories: [],
+                category: 'Самокаты',
+                subCategory: 'Самокаты',
+                refineIndex: 1,
+                refine: null,
+            };
+            renderInitialProducts();
+            updateFilterBackLabels();
+            filtersTrack.classList.remove('filters-track--refine');
+            filtersTrack.classList.add('filters-track--subs');
+            return;
+        }
+
         showCardsByCategories(activeGroups[groupName]);
 
         updateFilterBackLabels();
@@ -1440,6 +1680,57 @@ function initFilters(products) {
                     refine: null,
                 };
                 updateCategoryRefineOptions(category);
+                filtersTrack.classList.remove('filters-track--refine');
+                renderInitialProducts();
+                return;
+            }
+
+            if (category === 'Запчасти для самокатов') {
+                CURRENT_CATEGORY_REFINES = [];
+                CURRENT_PART_WHEEL_DIAMETERS = [];
+                CURRENT_SCOOTER_WHEEL_DIAMETERS = [];
+                CURRENT_FILTER_STATE = {
+                    type: 'category-refine-multi',
+                    categories: [],
+                    category: 'Самокаты',
+                    subCategory: category,
+                    refineIndex: 2,
+                    refine: null,
+                };
+                updateCategoryRefineOptions('Самокаты', category, 2);
+                filtersTrack.classList.remove('filters-track--refine');
+                renderInitialProducts();
+                return;
+            }
+
+            if (category === 'Сумки для самокатов') {
+                CURRENT_CATEGORY_REFINES = [];
+                CURRENT_PART_WHEEL_DIAMETERS = [];
+                CURRENT_SCOOTER_WHEEL_DIAMETERS = [];
+                CURRENT_FILTER_STATE = {
+                    type: 'scooter-subcategory',
+                    categories: [],
+                    category: 'Самокаты',
+                    subCategory: category,
+                    refine: null,
+                };
+                filtersTrack.classList.remove('filters-track--refine');
+                renderInitialProducts();
+                return;
+            }
+
+            if (category === 'Самокаты') {
+                CURRENT_CATEGORY_REFINES = [];
+                CURRENT_PART_WHEEL_DIAMETERS = [];
+                CURRENT_SCOOTER_WHEEL_DIAMETERS = [];
+                CURRENT_FILTER_STATE = {
+                    type: 'category-refine-multi',
+                    categories: [],
+                    category: 'Самокаты',
+                    subCategory: 'Самокаты',
+                    refineIndex: 1,
+                    refine: null,
+                };
                 filtersTrack.classList.remove('filters-track--refine');
                 renderInitialProducts();
                 return;
@@ -1589,15 +1880,22 @@ function initFilters(products) {
     const initialCategoryRefineState = CURRENT_FILTER_STATE.type === 'category-refine-multi'
         ? Object.assign({}, CURRENT_FILTER_STATE)
         : null;
+    const initialScooterSubcategoryState = CURRENT_FILTER_STATE.type === 'scooter-subcategory'
+        ? Object.assign({}, CURRENT_FILTER_STATE)
+        : null;
     const initialCategoryRefineValues = CURRENT_CATEGORY_REFINES.slice();
+    const initialPartWheelDiameters = CURRENT_PART_WHEEL_DIAMETERS.slice();
+    const initialScooterWheelDiameters = CURRENT_SCOOTER_WHEEL_DIAMETERS.slice();
     const initialCategory = initialBikeState
         ? 'Велосипеды'
         : (initialRefineState
             ? initialRefineState.category
             : (initialCategoryRefineState
                 ? initialCategoryRefineState.category
-                : (CURRENT_FILTER_STATE.type === 'categories' ? CURRENT_FILTER_STATE.categories[0] : '')));
-    const initialGroup = !initialBikeState && !initialRefineState && !initialCategoryRefineState && CURRENT_FILTER_STATE.type === 'categories'
+                : (initialScooterSubcategoryState
+                    ? 'Самокаты'
+                    : (CURRENT_FILTER_STATE.type === 'categories' ? CURRENT_FILTER_STATE.categories[0] : ''))));
+    const initialGroup = !initialBikeState && !initialRefineState && !initialCategoryRefineState && !initialScooterSubcategoryState && CURRENT_FILTER_STATE.type === 'categories'
         ? Object.keys(activeGroups).find(function (name) {
             return activeGroups[name].length === CURRENT_FILTER_STATE.categories.length
                 && activeGroups[name].every(function (category) {
@@ -1643,8 +1941,20 @@ function initFilters(products) {
             }
             if (initialCategoryRefineState) {
                 CURRENT_CATEGORY_REFINES = initialCategoryRefineValues;
+                CURRENT_PART_WHEEL_DIAMETERS = initialPartWheelDiameters;
+                CURRENT_SCOOTER_WHEEL_DIAMETERS = initialScooterWheelDiameters;
                 CURRENT_FILTER_STATE = initialCategoryRefineState;
-                updateCategoryRefineOptions(initialCategoryRefineState.category);
+                updateCategoryRefineOptions(
+                    initialCategoryRefineState.category,
+                    initialCategoryRefineState.subCategory,
+                    initialCategoryRefineState.refineIndex
+                );
+                renderInitialProducts();
+            }
+            if (initialScooterSubcategoryState) {
+                CURRENT_FILTER_STATE = initialScooterSubcategoryState;
+                CURRENT_CATEGORY_REFINES = [];
+                CURRENT_SCOOTER_WHEEL_DIAMETERS = [];
                 renderInitialProducts();
             }
         }
@@ -2525,4 +2835,67 @@ function addSpecRow(parent, key, value) {
     row.appendChild(keyEl);
     row.appendChild(valueEl);
     parent.appendChild(row);
+}
+
+const PART_WHEEL_DIAMETER_CATEGORIES = new Set([
+    'Колеса/Обода/Диски',
+    'Велопокрышки',
+    'Велокамеры/ободные ленты',
+]);
+const SUPPORTED_PART_WHEEL_DIAMETERS = [12, 14, 16, 18, 20, 22, 24, 26, 27.5, 28, 29];
+const SCOOTER_PART_SUBCATEGORIES = new Set(['Запчасти для самокатов', 'Сумки для самокатов']);
+
+function getPartWheelDiameters(productName) {
+    const normalizedName = String(productName || '');
+    if (/(?:^|[^\d])700(?=$|[^\d])/i.test(normalizedName)) {
+        return [28];
+    }
+
+    const matches = normalizedName.matchAll(/(?:^|[^\d])(27[,.]5|29|28|26|24|22|20|18|16|14|12)(?=$|[^\d])/gi);
+    return Array.from(new Set(Array.from(matches, function (match) {
+        return Number(match[1].replace(',', '.'));
+    }).filter(function (diameter) {
+        return SUPPORTED_PART_WHEEL_DIAMETERS.includes(diameter);
+    })));
+}
+
+function isPartWheelDiameterFilterActive() {
+    return CURRENT_FILTER_STATE.type === 'category-refine-multi'
+        && CURRENT_CATEGORY_REFINES.some(function (category) {
+            return PART_WHEEL_DIAMETER_CATEGORIES.has(category);
+        });
+}
+
+function getScooterWheelDiameters(product) {
+    const names = typeof product === 'string'
+        ? [product]
+        : [product && product.name].concat(Array.isArray(product && product.variants)
+            ? product.variants.map(function (variant) { return variant.name; })
+            : []);
+
+    return Array.from(new Set(names.map(function (name) {
+        const text = String(name || '');
+        const diameterAndWidth = text.match(/(?:^|[^\d])(\d{2,3})\s*(?:мм|mm)?\s*[*xх]\s*\d{1,3}(?:[,.]\d+)?/i);
+        if (diameterAndWidth) return Number(diameterAndWidth[1]);
+
+        const diameter = text.match(/(?:^|[^\d])(\d{2,3})\s*(?:мм|mm)(?=$|[^\p{L}])/iu);
+        return diameter ? Number(diameter[1]) : null;
+    }).filter(function (diameter) {
+        return diameter !== null;
+    })));
+}
+
+function isCategoryRefineFilterActive() {
+    return CURRENT_FILTER_STATE.type === 'category-refine-multi'
+        && (CURRENT_FILTER_STATE.category === 'Аксессуары для велосипедов'
+            || CURRENT_FILTER_STATE.category === 'Запчасти'
+            || (CURRENT_FILTER_STATE.category === 'Самокаты'
+                && CURRENT_FILTER_STATE.subCategory === 'Запчасти для самокатов'));
+}
+
+function isScooterWheelDiameterFilterActive() {
+    return CURRENT_FILTER_STATE.type === 'category-refine-multi'
+        && CURRENT_FILTER_STATE.category === 'Самокаты'
+        && CURRENT_FILTER_STATE.subCategory === 'Запчасти для самокатов'
+        && CURRENT_CATEGORY_REFINES.includes('Колёса');
 }

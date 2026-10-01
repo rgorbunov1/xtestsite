@@ -108,6 +108,20 @@
                             <button class="catalog-multi-filter__clear" id="clearCategoryRefineFilter" type="button">Сбросить</button>
                         </div>
                     </details>
+                    <details class="catalog-multi-filter" id="catalogPartWheelDiameterFilter" hidden>
+                        <summary class="catalog-multi-filter__trigger"><span>Диаметр колеса</span><span class="catalog-multi-filter__selection" id="partWheelDiameterSelection">Все</span></summary>
+                        <div class="catalog-multi-filter__menu">
+                            <div class="catalog-multi-filter__options" id="catalogPartWheelDiameterOptions"></div>
+                            <button class="catalog-multi-filter__clear" id="clearPartWheelDiameterFilter" type="button">Сбросить</button>
+                        </div>
+                    </details>
+                    <details class="catalog-multi-filter" id="catalogScooterWheelDiameterFilter" hidden>
+                        <summary class="catalog-multi-filter__trigger"><span>Диаметр колеса, мм</span><span class="catalog-multi-filter__selection" id="scooterWheelDiameterSelection">Все</span></summary>
+                        <div class="catalog-multi-filter__menu">
+                            <div class="catalog-multi-filter__options" id="catalogScooterWheelDiameterOptions"></div>
+                            <button class="catalog-multi-filter__clear" id="clearScooterWheelDiameterFilter" type="button">Сбросить</button>
+                        </div>
+                    </details>
                     <details class="catalog-multi-filter" id="catalogWarehouseFilter">
                         <summary class="catalog-multi-filter__trigger"><span>Наличие в магазине</span><span class="catalog-multi-filter__selection" id="warehouseSelection">Все</span></summary>
                         <div class="catalog-multi-filter__menu">
@@ -115,6 +129,7 @@
                             <button class="catalog-multi-filter__clear" id="clearWarehouseFilter" type="button">Сбросить</button>
                         </div>
                     </details>
+                    <button class="catalog-filter-reset" id="clearAllCatalogFilters" type="button">Сбросить все фильтры</button>
                 </div>
 
                 <!-- РЕЗУЛЬТАТЫ ПОИСКА -->

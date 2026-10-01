@@ -1537,6 +1537,23 @@ img {
     cursor: pointer;
 }
 
+.catalog-filter-reset {
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: var(--color-white);
+    color: var(--color-gray);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.catalog-filter-reset:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
 .scroll-sentinel {
     height: 60px;
     pointer-events: none;
