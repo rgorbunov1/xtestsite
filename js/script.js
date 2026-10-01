@@ -695,6 +695,8 @@ function initSearch() {
         if (searchFromUrl) {
             searchInput.value = searchFromUrl;
             CURRENT_SEARCH_QUERY = searchFromUrl;
+        } else if (CURRENT_SEARCH_QUERY) {
+            searchInput.value = CURRENT_SEARCH_QUERY;
         }
 
         if (categoryFromUrl) {
@@ -1347,7 +1349,9 @@ function initFilters(products) {
         : null;
     const initialCategory = initialBikeState
         ? 'Велосипеды'
-        : (CURRENT_FILTER_STATE.type === 'categories' ? CURRENT_FILTER_STATE.categories[0] : '');
+        : (CURRENT_FILTER_STATE.type === 'category-refine'
+            ? CURRENT_FILTER_STATE.category
+            : (CURRENT_FILTER_STATE.type === 'categories' ? CURRENT_FILTER_STATE.categories[0] : ''));
     if (initialCategory && subfiltersContainer) {
         const groupName = Object.keys(activeGroups).find(function (name) {
             return activeGroups[name].includes(initialCategory);
@@ -1365,12 +1369,22 @@ function initFilters(products) {
 
             if (initialBikeState && initialBikeState.bikeType) {
                 renderBikeTypes(initialBikeState.bikeType);
-                const typeButton = refineContainer.querySelector('[data-bike-type="' + CSS.escape(initialBikeState.bikeType) + '"]');
+                const typeButton = Array.from(refineContainer.querySelectorAll('[data-bike-type]')).find(function (button) {
+                    return button.dataset.bikeType === initialBikeState.bikeType;
+                });
                 if (typeButton) typeButton.click();
                 if (initialBikeState.bikeBrand) {
-                    const brandButton = bikeBrandContainer.querySelector('[data-bike-brand="' + CSS.escape(initialBikeState.bikeBrand) + '"]');
+                    const brandButton = Array.from(bikeBrandContainer.querySelectorAll('[data-bike-brand]')).find(function (button) {
+                        return button.dataset.bikeBrand === initialBikeState.bikeBrand;
+                    });
                     if (brandButton) brandButton.click();
                 }
+            }
+            if (CURRENT_FILTER_STATE.type === 'category-refine' && CURRENT_FILTER_STATE.refine) {
+                const refineButton = Array.from(refineContainer.querySelectorAll('[data-refine]')).find(function (button) {
+                    return button.dataset.refine === CURRENT_FILTER_STATE.refine;
+                });
+                if (refineButton) refineButton.click();
             }
         }
     }

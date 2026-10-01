@@ -1451,9 +1451,9 @@ img {
 }
 
 .filters-track {
-    --filter-panel-width: 33.3333%;
+    --filter-panel-width: 25%;
     display: flex;
-    width: 300%;
+    width: 400%;
     transition: transform 0.4s ease;
 }
 
@@ -1463,6 +1463,10 @@ img {
 
 .filters-track--refine {
     transform: translateX(calc(-2 * var(--filter-panel-width)));
+}
+
+.filters-track--bike-brands {
+    transform: translateX(calc(-3 * var(--filter-panel-width)));
 }
 
 .filters-panel {
@@ -2198,7 +2202,7 @@ a.product-page__stock-location:focus-visible {
 
     .filters-track {
         --filter-panel-width: calc(100vw - 18px);
-        width: 300%;
+        width: 400%;
     }
 
     .filters-panel {
