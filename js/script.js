@@ -206,11 +206,27 @@ function productMatchesSearch(product, query) {
     });
 }
 
+function getVisibleWarehouseEntries(stockList) {
+    if (!Array.isArray(stockList) || stockList.length === 0) {
+        return [];
+    }
+
+    return stockList.filter(function (warehouse) {
+        if (!warehouse || !warehouse.name) {
+            return false;
+        }
+
+        const warehouseSettings = (SITE_SETTINGS.warehouses || {})[warehouse.name] || {};
+        return warehouseSettings.visible !== false;
+    });
+}
+
 function productHasAnyStock(product) {
     if (!product) return false;
 
-    if (Array.isArray(product.stockByWarehouse) && product.stockByWarehouse.length > 0) {
-        const hasWarehouseStock = product.stockByWarehouse.some(function (warehouse) {
+    const visibleWarehouses = getVisibleWarehouseEntries(product.stockByWarehouse);
+    if (visibleWarehouses.length > 0) {
+        const hasWarehouseStock = visibleWarehouses.some(function (warehouse) {
             return Number(warehouse && warehouse.qty) > 0;
         });
         if (hasWarehouseStock) return true;
@@ -293,7 +309,7 @@ function productHasStockAtWarehouse(product, warehouseName) {
         : [product];
 
     return stockItems.some(function (item) {
-        return Array.isArray(item.stockByWarehouse) && item.stockByWarehouse.some(function (warehouse) {
+        return Array.isArray(item.stockByWarehouse) && getVisibleWarehouseEntries(item.stockByWarehouse).some(function (warehouse) {
             return warehouse.name === warehouseName && Number(warehouse.qty) > 0;
         });
     });
@@ -327,13 +343,15 @@ function initCatalogControls(products) {
     const warehouseFilter = document.getElementById('catalogWarehouseFilter');
     if (!priceSort || !warehouseFilter) return;
 
+    warehouseFilter.innerHTML = '<option value="">Все магазины</option>';
+
     const warehouses = new Set();
     products.forEach(function (product) {
         const stockItems = Array.isArray(product.variants) && product.variants.length
             ? product.variants
             : [product];
         stockItems.forEach(function (item) {
-            (item.stockByWarehouse || []).forEach(function (warehouse) {
+            getVisibleWarehouseEntries(item.stockByWarehouse).forEach(function (warehouse) {
                 if (warehouse.name) warehouses.add(warehouse.name);
             });
         });
@@ -762,7 +780,8 @@ const CATEGORY_GROUPS = {
 // ============================
 
 if (productsContainer) {
-    loadCatalogData()
+    siteSettingsReady
+        .then(loadCatalogData)
         .then(function (products) {
             ALL_PRODUCTS = products;
 
