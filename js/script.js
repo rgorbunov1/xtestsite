@@ -167,7 +167,8 @@ function saveCatalogSessionState() {
             searchQuery: CURRENT_SEARCH_QUERY,
             filterState: CURRENT_FILTER_STATE,
             priceSort: CURRENT_PRICE_SORT,
-            stockWarehouse: CURRENT_STOCK_WAREHOUSE,
+            wheelDiameters: CURRENT_WHEEL_DIAMETERS,
+            stockWarehouses: CURRENT_STOCK_WAREHOUSES,
         }));
     } catch (error) {
         return;
@@ -185,7 +186,10 @@ let CURRENT_FILTER_STATE = Object.assign({
     refine: null,
 }, SAVED_CATALOG_STATE.filterState || {});
 let CURRENT_PRICE_SORT = SAVED_CATALOG_STATE.priceSort || 'default';
-let CURRENT_STOCK_WAREHOUSE = SAVED_CATALOG_STATE.stockWarehouse || '';
+let CURRENT_WHEEL_DIAMETERS = Array.isArray(SAVED_CATALOG_STATE.wheelDiameters) ? SAVED_CATALOG_STATE.wheelDiameters : [];
+let CURRENT_STOCK_WAREHOUSES = Array.isArray(SAVED_CATALOG_STATE.stockWarehouses)
+    ? SAVED_CATALOG_STATE.stockWarehouses
+    : (SAVED_CATALOG_STATE.stockWarehouse ? [SAVED_CATALOG_STATE.stockWarehouse] : []);
 let RENDERED_COUNT = 0;
 let IS_RENDERING_BATCH = false;
 let INFINITE_OBSERVER = null;
@@ -332,24 +336,30 @@ function productMatchesFilter(product) {
     return true;
 }
 
-function productHasStockAtWarehouse(product, warehouseName) {
-    if (!warehouseName) return true;
+function productHasStockAtWarehouses(product, warehouseNames) {
+    if (!warehouseNames.length) return true;
     const stockItems = Array.isArray(product.variants) && product.variants.length
         ? product.variants
         : [product];
 
     return stockItems.some(function (item) {
         return Array.isArray(item.stockByWarehouse) && getVisibleWarehouseEntries(item.stockByWarehouse).some(function (warehouse) {
-            return warehouse.name === warehouseName && Number(warehouse.qty) > 0;
+            return warehouseNames.includes(warehouse.name) && Number(warehouse.qty) > 0;
         });
     });
+}
+
+function productMatchesWheelDiameter(product) {
+    if (!isBikeFilterActive() || !CURRENT_WHEEL_DIAMETERS.length) return true;
+    return CURRENT_WHEEL_DIAMETERS.includes(getBikeWheelDiameter(product));
 }
 
 function getFilteredProducts() {
     const filtered = ALL_PRODUCTS.filter(function (product) {
         return productHasAnyStock(product)
             && productMatchesFilter(product)
-            && productHasStockAtWarehouse(product, CURRENT_STOCK_WAREHOUSE)
+            && productHasStockAtWarehouses(product, CURRENT_STOCK_WAREHOUSES)
+            && productMatchesWheelDiameter(product)
             && productMatchesSearch(product, CURRENT_SEARCH_QUERY);
     });
 
@@ -368,18 +378,24 @@ function getFilteredProducts() {
     return filtered;
 }
 
+function getBikeWheelDiameter(product) {
+    const categories = Array.isArray(product && product.categories) ? product.categories : [];
+    const wheelLabel = categories.slice(1).find(function (value) {
+        return /^\s*\d{2}(?:[,.]\d+)?\s*["″]?\s*$/.test(value);
+    });
+    if (!wheelLabel) return null;
+
+    const diameter = Number(wheelLabel.replace(/[^\d,.]/g, '').replace(',', '.'));
+    return Number.isFinite(diameter) ? diameter : null;
+}
+
 function getBikeTypes(product) {
     if (!product || product.category !== 'Велосипеды') return [];
 
     const categories = Array.isArray(product.categories) ? product.categories : [];
     const searchable = normalizeString([product.name].concat(categories).join(' '));
     const bikeTypes = [];
-    const wheelLabel = categories.slice(2).find(function (value) {
-        return /^\s*\d{2}(?:[,.]\d+)?\s*["″]?\s*$/.test(value);
-    });
-    const wheelDiameter = wheelLabel
-        ? Number(wheelLabel.replace(/[^\d,.]/g, '').replace(',', '.'))
-        : null;
+    const wheelDiameter = getBikeWheelDiameter(product);
 
     if (categories.some(function (value) { return /беговел/i.test(value); }) || /беговел/.test(searchable)) {
         return ['Беговелы'];
@@ -393,7 +409,7 @@ function getBikeTypes(product) {
     if (categories.some(function (value) { return /городск/i.test(value); }) || /городск/.test(searchable)) {
         return ['Городские'];
     }
-    if (categories.some(function (value) { return /складные\/дорожные|дорожн|шоссейн/i.test(value); }) || /дорожн|шоссейн/.test(searchable)) {
+    if (categories.some(function (value) { return /дорожн|шоссейн/i.test(value); }) || /дорожн|шоссейн/.test(searchable)) {
         return ['Дорожные'];
     }
 
@@ -410,21 +426,84 @@ function getBikeTypes(product) {
 
 function getBikeBrand(product) {
     const categories = Array.isArray(product.categories) ? product.categories : [];
-    const categoryBrand = categories[1] || '';
-    if (categoryBrand && !/^(беговелы|трех\s*колесные|3-х\s*колесник)$/i.test(categoryBrand)) {
-        return categoryBrand;
+    const brand = categories.slice(1).find(function (value) {
+        return value
+            && !/^\s*\d{2}(?:[,.]\d+)?\s*["″]?\s*$/.test(value)
+            && !/^(беговелы|трех\s*колесные|3-х\s*колесник|дорожные|складные\/дорожные|трюковые|бмх|bmx|детские|подростковые|взрослые|городские)$/i.test(value);
+    });
+    if (brand) {
+        return brand;
     }
 
     const balanceBikeBrand = String(product.name || '').match(/беговел\s+["«]?([\p{L}\d_-]+)/iu);
     return balanceBikeBrand ? balanceBikeBrand[1] : 'Другие';
 }
 
+function isBikeFilterActive() {
+    return CURRENT_FILTER_STATE.type.indexOf('bike-') === 0
+        || (CURRENT_FILTER_STATE.categories.length === 1 && CURRENT_FILTER_STATE.categories[0] === 'Велосипеды')
+        || CURRENT_FILTER_STATE.category === 'Велосипеды';
+}
+
+function updateMultiFilterSelection(id, selectedCount) {
+    const selection = document.getElementById(id);
+    if (selection) {
+        selection.textContent = selectedCount ? 'Выбрано: ' + selectedCount : 'Все';
+    }
+}
+
+function updateWheelDiameterFilter() {
+    const filter = document.getElementById('catalogWheelDiameterFilter');
+    const options = document.getElementById('catalogWheelDiameterOptions');
+    if (!filter || !options) return;
+
+    const selectedType = CURRENT_FILTER_STATE.bikeType;
+    const selectedBrand = CURRENT_FILTER_STATE.bikeBrand;
+    const diameters = Array.from(new Set(ALL_PRODUCTS
+        .filter(function (product) {
+            return product.category === 'Велосипеды'
+                && (!selectedType || getBikeTypes(product).includes(selectedType))
+                && (!selectedBrand || getBikeBrand(product) === selectedBrand);
+        })
+        .map(getBikeWheelDiameter)
+        .filter(function (diameter) { return diameter !== null; })))
+        .sort(function (leftDiameter, rightDiameter) { return leftDiameter - rightDiameter; });
+
+    CURRENT_WHEEL_DIAMETERS = CURRENT_WHEEL_DIAMETERS.filter(function (diameter) {
+        return diameters.includes(Number(diameter));
+    });
+    filter.hidden = !isBikeFilterActive() || diameters.length === 0;
+    updateMultiFilterSelection('wheelDiameterSelection', CURRENT_WHEEL_DIAMETERS.length);
+    options.innerHTML = '';
+
+    diameters.forEach(function (diameter, index) {
+        const label = document.createElement('label');
+        label.className = 'catalog-multi-filter__option';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'catalogWheelDiameterOption-' + index;
+        checkbox.value = String(diameter);
+        checkbox.checked = CURRENT_WHEEL_DIAMETERS.includes(diameter);
+        checkbox.addEventListener('change', function () {
+            CURRENT_WHEEL_DIAMETERS = Array.from(options.querySelectorAll('input:checked')).map(function (input) {
+                return Number(input.value);
+            });
+            updateMultiFilterSelection('wheelDiameterSelection', CURRENT_WHEEL_DIAMETERS.length);
+            renderInitialProducts();
+        });
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(diameter + '"'));
+        options.appendChild(label);
+    });
+}
+
 function initCatalogControls(products) {
     const priceSort = document.getElementById('catalogPriceSort');
     const warehouseFilter = document.getElementById('catalogWarehouseFilter');
-    if (!priceSort || !warehouseFilter) return;
-
-    warehouseFilter.innerHTML = '<option value="">Все магазины</option>';
+    const warehouseOptions = document.getElementById('catalogWarehouseOptions');
+    const clearWarehouseFilter = document.getElementById('clearWarehouseFilter');
+    const clearWheelDiameterFilter = document.getElementById('clearWheelDiameterFilter');
+    if (!priceSort || !warehouseFilter || !warehouseOptions) return;
 
     const warehouses = new Set();
     products.forEach(function (product) {
@@ -438,28 +517,61 @@ function initCatalogControls(products) {
         });
     });
 
-    Array.from(warehouses).sort(function (a, b) {
-        return a.localeCompare(b, 'ru');
-    }).forEach(function (name) {
-        const option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
-        warehouseFilter.appendChild(option);
+    const availableWarehouses = Array.from(warehouses).sort(function (leftName, rightName) {
+        return leftName.localeCompare(rightName, 'ru');
+    });
+    CURRENT_STOCK_WAREHOUSES = CURRENT_STOCK_WAREHOUSES.filter(function (name) {
+        return availableWarehouses.includes(name);
+    });
+    updateMultiFilterSelection('warehouseSelection', CURRENT_STOCK_WAREHOUSES.length);
+
+    availableWarehouses.forEach(function (name, index) {
+        const label = document.createElement('label');
+        label.className = 'catalog-multi-filter__option';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'catalogWarehouseOption-' + index;
+        checkbox.value = name;
+        checkbox.checked = CURRENT_STOCK_WAREHOUSES.includes(name);
+        checkbox.addEventListener('change', function () {
+            CURRENT_STOCK_WAREHOUSES = Array.from(warehouseOptions.querySelectorAll('input:checked')).map(function (input) {
+                return input.value;
+            });
+            updateMultiFilterSelection('warehouseSelection', CURRENT_STOCK_WAREHOUSES.length);
+            renderInitialProducts();
+        });
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(name));
+        warehouseOptions.appendChild(label);
     });
 
     priceSort.value = CURRENT_PRICE_SORT;
     if (priceSort.value !== CURRENT_PRICE_SORT) CURRENT_PRICE_SORT = 'default';
-    warehouseFilter.value = CURRENT_STOCK_WAREHOUSE;
-    if (warehouseFilter.value !== CURRENT_STOCK_WAREHOUSE) CURRENT_STOCK_WAREHOUSE = '';
 
     priceSort.addEventListener('change', function () {
         CURRENT_PRICE_SORT = priceSort.value;
         renderInitialProducts();
     });
-    warehouseFilter.addEventListener('change', function () {
-        CURRENT_STOCK_WAREHOUSE = warehouseFilter.value;
-        renderInitialProducts();
-    });
+    if (clearWarehouseFilter) {
+        clearWarehouseFilter.addEventListener('click', function () {
+            CURRENT_STOCK_WAREHOUSES = [];
+            updateMultiFilterSelection('warehouseSelection', 0);
+            warehouseOptions.querySelectorAll('input').forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+            renderInitialProducts();
+        });
+    }
+    if (clearWheelDiameterFilter) {
+        clearWheelDiameterFilter.addEventListener('click', function () {
+            CURRENT_WHEEL_DIAMETERS = [];
+            updateMultiFilterSelection('wheelDiameterSelection', 0);
+            document.querySelectorAll('#catalogWheelDiameterOptions input').forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+            renderInitialProducts();
+        });
+    }
 }
 
 // ============================
@@ -510,13 +622,14 @@ function renderMoreProducts() {
 function renderInitialProducts() {
     if (!productsContainer) return;
 
+    updateWheelDiameterFilter();
     saveCatalogSessionState();
     clearProducts();
     hideNoResults();
     renderMoreProducts();
 
     const filtered = getFilteredProducts();
-    if (filtered.length === 0 && (CURRENT_SEARCH_QUERY || CURRENT_FILTER_STATE.type !== 'all' || CURRENT_STOCK_WAREHOUSE)) {
+    if (filtered.length === 0 && (CURRENT_SEARCH_QUERY || CURRENT_FILTER_STATE.type !== 'all' || CURRENT_STOCK_WAREHOUSES.length)) {
         showNoResults();
     }
 }
@@ -1258,6 +1371,10 @@ function initFilters(products) {
                     button.classList.toggle('filters__btn--active', button === btn);
                 });
                 setBikeFilter(btn.dataset.bikeType, null);
+                if (btn.dataset.bikeType === 'Беговелы' || btn.dataset.bikeType === 'Трехколесные') {
+                    filtersTrack.classList.remove('filters-track--bike-brands');
+                    return;
+                }
                 renderBikeBrands(btn.dataset.bikeType, null);
                 filtersTrack.classList.add('filters-track--bike-brands');
                 return;

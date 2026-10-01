@@ -1392,6 +1392,10 @@ img {
     font-weight: 600;
 }
 
+.catalog-control[hidden] {
+    display: none;
+}
+
 .catalog-control select {
     width: 100%;
     min-height: 42px;
@@ -1402,6 +1406,119 @@ img {
     color: var(--color-dark);
     font: inherit;
     font-size: 14px;
+}
+
+.catalog-multi-filter {
+    position: relative;
+    display: block;
+    min-width: 210px;
+    width: 210px;
+    margin: 0;
+    padding: 0;
+    color: var(--color-dark);
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 2;
+}
+
+.catalog-multi-filter[hidden] {
+    display: none;
+}
+
+.catalog-multi-filter__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: var(--color-white);
+    color: var(--color-dark);
+    cursor: pointer;
+    list-style: none;
+}
+
+.catalog-multi-filter__trigger::-webkit-details-marker {
+    display: none;
+}
+
+.catalog-multi-filter__trigger::after {
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    content: "";
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 0.15s ease;
+}
+
+.catalog-multi-filter[open] .catalog-multi-filter__trigger::after {
+    transform: rotate(225deg) translate(-2px, -1px);
+}
+
+.catalog-multi-filter__selection {
+    margin-left: auto;
+    color: var(--color-gray);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.catalog-multi-filter__menu {
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    display: grid;
+    gap: 10px;
+    width: max(100%, 240px);
+    max-width: min(88vw, 360px);
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: var(--color-white);
+    box-shadow: 0 8px 22px rgba(18, 32, 54, 0.16);
+}
+
+.catalog-multi-filter__menu[hidden] {
+    display: none;
+}
+
+.catalog-multi-filter__options {
+    display: grid;
+    gap: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.catalog-multi-filter__option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-dark);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.catalog-multi-filter__option input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--color-primary);
+}
+
+.catalog-multi-filter__clear {
+    justify-self: start;
+    padding: 2px 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-primary);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
 }
 
 .scroll-sentinel {

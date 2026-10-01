@@ -77,7 +77,7 @@
 
                         <!-- Панель 4: бренды велосипедов -->
                         <div class="filters-panel filters-panel--subs">
-                            <button class="filters__back" id="backToBikeTypesBtn">← Тип велосипеда</button>
+                            <button class="filters__back" id="backToBikeTypesBtn">Тип велосипеда</button>
                             <div class="filters-panel__inner" id="bikeBrandContainer"></div>
                         </div>
 
@@ -93,12 +93,20 @@
                             <option value="price-desc">Сначала дороже</option>
                         </select>
                     </label>
-                    <label class="catalog-control" for="catalogWarehouseFilter">
-                        <span>Наличие в магазине</span>
-                        <select id="catalogWarehouseFilter">
-                            <option value="">Все магазины</option>
-                        </select>
-                    </label>
+                    <details class="catalog-multi-filter" id="catalogWheelDiameterFilter" hidden>
+                        <summary class="catalog-multi-filter__trigger"><span>Диаметр колеса</span><span class="catalog-multi-filter__selection" id="wheelDiameterSelection">Все</span></summary>
+                        <div class="catalog-multi-filter__menu">
+                            <div class="catalog-multi-filter__options" id="catalogWheelDiameterOptions"></div>
+                            <button class="catalog-multi-filter__clear" id="clearWheelDiameterFilter" type="button">Сбросить</button>
+                        </div>
+                    </details>
+                    <details class="catalog-multi-filter" id="catalogWarehouseFilter">
+                        <summary class="catalog-multi-filter__trigger"><span>Наличие в магазине</span><span class="catalog-multi-filter__selection" id="warehouseSelection">Все</span></summary>
+                        <div class="catalog-multi-filter__menu">
+                            <div class="catalog-multi-filter__options" id="catalogWarehouseOptions"></div>
+                            <button class="catalog-multi-filter__clear" id="clearWarehouseFilter" type="button">Сбросить</button>
+                        </div>
+                    </details>
                 </div>
 
                 <!-- РЕЗУЛЬТАТЫ ПОИСКА -->
