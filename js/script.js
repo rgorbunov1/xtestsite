@@ -779,6 +779,18 @@ const CATEGORY_GROUPS = {
 // ЗАГРУЗКА ТОВАРОВ ИЗ JSON
 // ============================
 
+const productContainer = document.getElementById('productContainer');
+const siteSettingsReady = loadSiteSettings()
+    .then(function (settings) {
+        SITE_SETTINGS = settings;
+        applySiteSettings(document);
+        return settings;
+    })
+    .catch(function (error) {
+        console.error('Ошибка загрузки настроек сайта:', error);
+        return SITE_SETTINGS;
+    });
+
 if (productsContainer) {
     siteSettingsReady
         .then(loadCatalogData)
@@ -1150,6 +1162,26 @@ function initFilters(products) {
         });
     }
 
+    const initialCategory = CURRENT_FILTER_STATE.type === 'categories'
+        ? CURRENT_FILTER_STATE.categories[0]
+        : '';
+    if (initialCategory && subfiltersContainer) {
+        const groupName = Object.keys(activeGroups).find(function (name) {
+            return activeGroups[name].includes(initialCategory);
+        });
+        const groupButton = groupName && Array.from(filtersContainer.querySelectorAll('[data-group]')).find(function (button) {
+            return button.dataset.group === groupName;
+        });
+
+        if (groupButton) {
+            groupButton.click();
+            const categoryButton = Array.from(subfiltersContainer.querySelectorAll('[data-category]')).find(function (button) {
+                return button.dataset.category === initialCategory;
+            });
+            if (categoryButton) categoryButton.click();
+        }
+    }
+
     function showAllCards() {
         CURRENT_FILTER_STATE = {
             type: 'all',
@@ -1424,18 +1456,6 @@ if (heroSlides.length > 0) {
 
     restartAutoplay();
 }
-
-const productContainer = document.getElementById('productContainer');
-const siteSettingsReady = loadSiteSettings()
-    .then(function (settings) {
-        SITE_SETTINGS = settings;
-        applySiteSettings(document);
-        return settings;
-    })
-    .catch(function (error) {
-        console.error('Ошибка загрузки настроек сайта:', error);
-        return SITE_SETTINGS;
-    });
 
 if (productContainer) {
     siteSettingsReady.then(loadProductPage);
@@ -1789,7 +1809,7 @@ function renderProduct(product) {
         availableVariants.forEach(function (variant) {
             const option = document.createElement('option');
             option.value = variant.id;
-            option.textContent = variant.name + ' — ' + variant.price.toLocaleString('ru-RU') + ' ₽';
+            option.textContent = variant.name;
             select.appendChild(option);
         });
 
