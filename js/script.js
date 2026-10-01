@@ -382,28 +382,27 @@ function getBikeTypes(product) {
         : null;
 
     if (categories.some(function (value) { return /беговел/i.test(value); }) || /беговел/.test(searchable)) {
-        bikeTypes.push('Беговелы');
+        return ['Беговелы'];
     }
     if (categories.some(function (value) { return /трех\s*кол|3-х\s*кол/i.test(value); }) || /тр[её]х\s*кол|3\s*кол/.test(searchable)) {
-        bikeTypes.push('Трехколесные');
+        return ['Трехколесные'];
     }
-    if (/\b(?:bmx|mtb)\b|бмх|вмх|мтб|трюков/.test(searchable)) {
-        bikeTypes.push('Трюковые');
-    }
-    if (categories.some(function (value) { return /складные\/дорожные|дорожн|шоссейн/i.test(value); }) || /дорожн|шоссейн/.test(searchable)) {
-        bikeTypes.push('Дорожные');
+    if (/bmx|mtb|бмх|вмх|мтб|трюков/.test(searchable)) {
+        return ['Трюковые'];
     }
     if (categories.some(function (value) { return /городск/i.test(value); }) || /городск/.test(searchable)) {
-        bikeTypes.push('Городские');
+        return ['Городские'];
     }
-    if (categories.some(function (value) { return /^детские$/i.test(value); }) || /детский|детское/.test(searchable)) {
-        bikeTypes.push('Детские');
+    if (categories.some(function (value) { return /складные\/дорожные|дорожн|шоссейн/i.test(value); }) || /дорожн|шоссейн/.test(searchable)) {
+        return ['Дорожные'];
     }
 
     if (Number.isFinite(wheelDiameter)) {
         if (wheelDiameter >= 12 && wheelDiameter <= 20) bikeTypes.push('Детские');
         if (wheelDiameter >= 20 && wheelDiameter <= 26) bikeTypes.push('Подростковые');
         if (wheelDiameter >= 26 && wheelDiameter <= 29) bikeTypes.push('Взрослые');
+    } else if (categories.some(function (value) { return /^детские$/i.test(value); }) || /детский|детское/.test(searchable)) {
+        bikeTypes.push('Детские');
     }
 
     return Array.from(new Set(bikeTypes));
@@ -1111,7 +1110,9 @@ function initFilters(products) {
         const types = Array.from(new Set(products
             .filter(function (product) { return product.category === 'Велосипеды'; })
             .reduce(function (allTypes, product) { return allTypes.concat(getBikeTypes(product)); }, [])))
-            .sort(function (a, b) { return bikeTypeOrder.indexOf(a) - bikeTypeOrder.indexOf(b); });
+            .sort(function (leftType, rightType) {
+                return bikeTypeOrder.indexOf(leftType) - bikeTypeOrder.indexOf(rightType);
+            });
 
         refineContainer.innerHTML = '';
         types.forEach(function (type) {
@@ -1130,7 +1131,9 @@ function initFilters(products) {
             .filter(function (product) {
                 return product.category === 'Велосипеды' && getBikeTypes(product).includes(type);
             })
-            .map(getBikeBrand))).sort(function (a, b) { return a.localeCompare(b, 'ru'); });
+            .map(getBikeBrand))).sort(function (leftBrand, rightBrand) {
+                return leftBrand.localeCompare(rightBrand, 'ru');
+            });
 
         bikeBrandContainer.innerHTML = '';
         brands.forEach(function (brand) {
@@ -1172,15 +1175,6 @@ function initFilters(products) {
 
             if (groupName === 'Игры' && activeGroups[groupName].length === 1) {
                 showCardsByCategories(activeGroups[groupName]);
-        if (category === 'Велосипеды') {
-            setBikeFilter(null, null);
-            renderBikeTypes(null);
-            filtersTrack.classList.remove('filters-track--subs');
-            filtersTrack.classList.add('filters-track--refine');
-            updateFilterBackLabels();
-            return;
-        }
-
                 filtersTrack.classList.remove('filters-track--refine');
                 filtersTrack.classList.remove('filters-track--subs');
                 return;
@@ -1213,6 +1207,15 @@ function initFilters(products) {
             btn.classList.add('filters__btn--active');
 
             const category = btn.dataset.category;
+            if (category === 'Велосипеды') {
+                setBikeFilter(null, null);
+                renderBikeTypes(null);
+                filtersTrack.classList.add('filters-track--subs');
+                filtersTrack.classList.add('filters-track--refine');
+                updateFilterBackLabels();
+                return;
+            }
+
             showCardsByCategories([category]);
 
             const refines = refineByCategory[category]
@@ -1347,11 +1350,22 @@ function initFilters(products) {
     const initialBikeState = CURRENT_FILTER_STATE.type.indexOf('bike-') === 0
         ? Object.assign({}, CURRENT_FILTER_STATE)
         : null;
+    const initialRefineState = CURRENT_FILTER_STATE.type === 'category-refine'
+        ? Object.assign({}, CURRENT_FILTER_STATE)
+        : null;
     const initialCategory = initialBikeState
         ? 'Велосипеды'
-        : (CURRENT_FILTER_STATE.type === 'category-refine'
-            ? CURRENT_FILTER_STATE.category
+        : (initialRefineState
+            ? initialRefineState.category
             : (CURRENT_FILTER_STATE.type === 'categories' ? CURRENT_FILTER_STATE.categories[0] : ''));
+    const initialGroup = !initialBikeState && !initialRefineState && CURRENT_FILTER_STATE.type === 'categories'
+        ? Object.keys(activeGroups).find(function (name) {
+            return activeGroups[name].length === CURRENT_FILTER_STATE.categories.length
+                && activeGroups[name].every(function (category) {
+                    return CURRENT_FILTER_STATE.categories.includes(category);
+                });
+        })
+        : null;
     if (initialCategory && subfiltersContainer) {
         const groupName = Object.keys(activeGroups).find(function (name) {
             return activeGroups[name].includes(initialCategory);
@@ -1362,10 +1376,12 @@ function initFilters(products) {
 
         if (groupButton) {
             groupButton.click();
-            const categoryButton = Array.from(subfiltersContainer.querySelectorAll('[data-category]')).find(function (button) {
-                return button.dataset.category === initialCategory;
-            });
-            if (categoryButton) categoryButton.click();
+            if (!initialGroup) {
+                const categoryButton = Array.from(subfiltersContainer.querySelectorAll('[data-category]')).find(function (button) {
+                    return button.dataset.category === initialCategory;
+                });
+                if (categoryButton) categoryButton.click();
+            }
 
             if (initialBikeState && initialBikeState.bikeType) {
                 renderBikeTypes(initialBikeState.bikeType);
@@ -1380,9 +1396,9 @@ function initFilters(products) {
                     if (brandButton) brandButton.click();
                 }
             }
-            if (CURRENT_FILTER_STATE.type === 'category-refine' && CURRENT_FILTER_STATE.refine) {
+            if (initialRefineState && initialRefineState.refine) {
                 const refineButton = Array.from(refineContainer.querySelectorAll('[data-refine]')).find(function (button) {
-                    return button.dataset.refine === CURRENT_FILTER_STATE.refine;
+                    return button.dataset.refine === initialRefineState.refine;
                 });
                 if (refineButton) refineButton.click();
             }
