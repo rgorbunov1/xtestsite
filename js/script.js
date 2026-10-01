@@ -166,6 +166,7 @@ function saveCatalogSessionState() {
         sessionStorage.setItem(CATALOG_SESSION_KEY, JSON.stringify({
             searchQuery: CURRENT_SEARCH_QUERY,
             filterState: CURRENT_FILTER_STATE,
+            categoryRefines: CURRENT_CATEGORY_REFINES,
             priceSort: CURRENT_PRICE_SORT,
             wheelDiameters: CURRENT_WHEEL_DIAMETERS,
             stockWarehouses: CURRENT_STOCK_WAREHOUSES,
@@ -185,6 +186,7 @@ let CURRENT_FILTER_STATE = Object.assign({
     category: null,
     refine: null,
 }, SAVED_CATALOG_STATE.filterState || {});
+let CURRENT_CATEGORY_REFINES = Array.isArray(SAVED_CATALOG_STATE.categoryRefines) ? SAVED_CATALOG_STATE.categoryRefines : [];
 let CURRENT_PRICE_SORT = SAVED_CATALOG_STATE.priceSort || 'default';
 let CURRENT_WHEEL_DIAMETERS = Array.isArray(SAVED_CATALOG_STATE.wheelDiameters) ? SAVED_CATALOG_STATE.wheelDiameters : [];
 let CURRENT_STOCK_WAREHOUSES = Array.isArray(SAVED_CATALOG_STATE.stockWarehouses)
@@ -331,6 +333,12 @@ function productMatchesFilter(product) {
         const refineVal = (product.categories && product.categories[1]) || '';
         const refineMatch = state.refine === null || refineVal === state.refine;
         return catMatch && refineMatch;
+    }
+
+    if (state.type === 'category-refine-multi') {
+        const catMatch = (product.category || '') === state.category;
+        const refineVal = (product.categories && product.categories[1]) || '';
+        return catMatch && (!CURRENT_CATEGORY_REFINES.length || CURRENT_CATEGORY_REFINES.includes(refineVal));
     }
 
     return true;
@@ -505,6 +513,17 @@ function initCatalogControls(products) {
     const clearWheelDiameterFilter = document.getElementById('clearWheelDiameterFilter');
     if (!priceSort || !warehouseFilter || !warehouseOptions) return;
 
+    if (!document.documentElement.dataset.catalogMultiFilterDismissBound) {
+        document.documentElement.dataset.catalogMultiFilterDismissBound = 'true';
+        document.addEventListener('click', function (event) {
+            document.querySelectorAll('.catalog-multi-filter[open]').forEach(function (filter) {
+                if (!filter.contains(event.target)) {
+                    filter.open = false;
+                }
+            });
+        });
+    }
+
     const warehouses = new Set();
     products.forEach(function (product) {
         const stockItems = Array.isArray(product.variants) && product.variants.length
@@ -621,6 +640,13 @@ function renderMoreProducts() {
 
 function renderInitialProducts() {
     if (!productsContainer) return;
+
+    const categoryRefineFilter = document.getElementById('catalogCategoryRefineFilter');
+    if (categoryRefineFilter) {
+        const categoryRefineIsActive = CURRENT_FILTER_STATE.type === 'category-refine-multi';
+        categoryRefineFilter.hidden = !categoryRefineIsActive;
+        if (!categoryRefineIsActive) categoryRefineFilter.open = false;
+    }
 
     updateWheelDiameterFilter();
     saveCatalogSessionState();
@@ -1133,6 +1159,10 @@ function initFilters(products) {
     const filtersContainer = document.getElementById('filtersContainer');
     const subfiltersContainer = document.getElementById('subfiltersContainer');
     const refineContainer = document.getElementById('refineContainer');
+    const categoryRefineFilter = document.getElementById('catalogCategoryRefineFilter');
+    const categoryRefineOptions = document.getElementById('catalogCategoryRefineOptions');
+    const categoryRefineSearch = document.getElementById('catalogCategoryRefineSearch');
+    const clearCategoryRefineFilter = document.getElementById('clearCategoryRefineFilter');
     const bikeBrandContainer = document.getElementById('bikeBrandContainer');
     const filtersTrack = document.getElementById('filtersTrack');
     const backBtn = document.getElementById('backBtn');
@@ -1196,6 +1226,77 @@ function initFilters(products) {
         refineByCategory[cat].add(refine);
     });
 
+    function updateCategoryRefineOptions(category) {
+        if (!categoryRefineFilter || !categoryRefineOptions) return;
+
+        const isTerminalCategory = category === 'Аксессуары для велосипедов' || category === 'Запчасти';
+        const refines = isTerminalCategory && refineByCategory[category]
+            ? Array.from(refineByCategory[category]).sort(function (left, right) {
+                return left.localeCompare(right, 'ru');
+            })
+            : [];
+
+        CURRENT_CATEGORY_REFINES = CURRENT_CATEGORY_REFINES.filter(function (value) {
+            return refines.includes(value);
+        });
+        categoryRefineFilter.hidden = !isTerminalCategory || refines.length === 0;
+        categoryRefineOptions.innerHTML = '';
+        updateMultiFilterSelection('categoryRefineSelection', CURRENT_CATEGORY_REFINES.length);
+
+        refines.forEach(function (refine, index) {
+            const label = document.createElement('label');
+            label.className = 'catalog-multi-filter__option';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = 'catalogCategoryRefineOption-' + index;
+            checkbox.value = refine;
+            checkbox.checked = CURRENT_CATEGORY_REFINES.includes(refine);
+            checkbox.addEventListener('change', function () {
+                CURRENT_CATEGORY_REFINES = Array.from(categoryRefineOptions.querySelectorAll('input:checked')).map(function (input) {
+                    return input.value;
+                });
+                CURRENT_FILTER_STATE = {
+                    type: 'category-refine-multi',
+                    categories: [],
+                    category: category,
+                    refine: null,
+                };
+                updateMultiFilterSelection('categoryRefineSelection', CURRENT_CATEGORY_REFINES.length);
+                renderInitialProducts();
+            });
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(refine));
+            categoryRefineOptions.appendChild(label);
+        });
+
+        if (categoryRefineSearch) {
+            categoryRefineSearch.value = '';
+            categoryRefineOptions.querySelectorAll('.catalog-multi-filter__option').forEach(function (label) {
+                label.hidden = false;
+            });
+        }
+    }
+
+    if (categoryRefineSearch && categoryRefineOptions) {
+        categoryRefineSearch.addEventListener('input', function () {
+            const query = normalizeString(categoryRefineSearch.value);
+            categoryRefineOptions.querySelectorAll('.catalog-multi-filter__option').forEach(function (label) {
+                label.hidden = !normalizeString(label.textContent).includes(query);
+            });
+        });
+    }
+
+    if (clearCategoryRefineFilter && categoryRefineOptions) {
+        clearCategoryRefineFilter.addEventListener('click', function () {
+            CURRENT_CATEGORY_REFINES = [];
+            categoryRefineOptions.querySelectorAll('input').forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+            updateMultiFilterSelection('categoryRefineSelection', 0);
+            renderInitialProducts();
+        });
+    }
+
     Object.keys(activeGroups).forEach(function (groupName) {
         const btn = document.createElement('button');
         btn.className = 'filters__btn';
@@ -1207,6 +1308,7 @@ function initFilters(products) {
     const bikeTypeOrder = ['Детские', 'Подростковые', 'Взрослые', 'Дорожные', 'Трюковые', 'Городские', 'Беговелы', 'Трехколесные'];
 
     function setBikeFilter(type, brand) {
+        CURRENT_CATEGORY_REFINES = [];
         CURRENT_FILTER_STATE = {
             type: brand ? 'bike-brand' : (type ? 'bike-type' : 'bike-category'),
             categories: ['Велосипеды'],
@@ -1326,6 +1428,20 @@ function initFilters(products) {
                 filtersTrack.classList.add('filters-track--subs');
                 filtersTrack.classList.add('filters-track--refine');
                 updateFilterBackLabels();
+                return;
+            }
+
+            if (category === 'Аксессуары для велосипедов' || category === 'Запчасти') {
+                CURRENT_CATEGORY_REFINES = [];
+                CURRENT_FILTER_STATE = {
+                    type: 'category-refine-multi',
+                    categories: [],
+                    category: category,
+                    refine: null,
+                };
+                updateCategoryRefineOptions(category);
+                filtersTrack.classList.remove('filters-track--refine');
+                renderInitialProducts();
                 return;
             }
 
@@ -1470,12 +1586,18 @@ function initFilters(products) {
     const initialRefineState = CURRENT_FILTER_STATE.type === 'category-refine'
         ? Object.assign({}, CURRENT_FILTER_STATE)
         : null;
+    const initialCategoryRefineState = CURRENT_FILTER_STATE.type === 'category-refine-multi'
+        ? Object.assign({}, CURRENT_FILTER_STATE)
+        : null;
+    const initialCategoryRefineValues = CURRENT_CATEGORY_REFINES.slice();
     const initialCategory = initialBikeState
         ? 'Велосипеды'
         : (initialRefineState
             ? initialRefineState.category
-            : (CURRENT_FILTER_STATE.type === 'categories' ? CURRENT_FILTER_STATE.categories[0] : ''));
-    const initialGroup = !initialBikeState && !initialRefineState && CURRENT_FILTER_STATE.type === 'categories'
+            : (initialCategoryRefineState
+                ? initialCategoryRefineState.category
+                : (CURRENT_FILTER_STATE.type === 'categories' ? CURRENT_FILTER_STATE.categories[0] : '')));
+    const initialGroup = !initialBikeState && !initialRefineState && !initialCategoryRefineState && CURRENT_FILTER_STATE.type === 'categories'
         ? Object.keys(activeGroups).find(function (name) {
             return activeGroups[name].length === CURRENT_FILTER_STATE.categories.length
                 && activeGroups[name].every(function (category) {
@@ -1519,10 +1641,17 @@ function initFilters(products) {
                 });
                 if (refineButton) refineButton.click();
             }
+            if (initialCategoryRefineState) {
+                CURRENT_CATEGORY_REFINES = initialCategoryRefineValues;
+                CURRENT_FILTER_STATE = initialCategoryRefineState;
+                updateCategoryRefineOptions(initialCategoryRefineState.category);
+                renderInitialProducts();
+            }
         }
     }
 
     function showAllCards() {
+        CURRENT_CATEGORY_REFINES = [];
         CURRENT_FILTER_STATE = {
             type: 'all',
             categories: [],
@@ -1534,6 +1663,7 @@ function initFilters(products) {
     }
 
     function showCardsByCategories(categories) {
+        CURRENT_CATEGORY_REFINES = [];
         CURRENT_FILTER_STATE = {
             type: 'categories',
             categories: categories,
@@ -1545,6 +1675,7 @@ function initFilters(products) {
     }
 
     function filterByCategoryAndRefine(category, refine) {
+        CURRENT_CATEGORY_REFINES = [];
         CURRENT_FILTER_STATE = {
             type: 'category-refine',
             categories: [],

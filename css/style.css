@@ -1493,6 +1493,18 @@ img {
     overscroll-behavior: contain;
 }
 
+.catalog-multi-filter__search {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    background: var(--color-white);
+    color: var(--color-dark);
+    font: inherit;
+    font-size: 13px;
+}
+
 .catalog-multi-filter__option {
     display: inline-flex;
     align-items: center;
@@ -1501,6 +1513,10 @@ img {
     font-size: 13px;
     font-weight: 500;
     white-space: nowrap;
+}
+
+.catalog-multi-filter__option[hidden] {
+    display: none;
 }
 
 .catalog-multi-filter__option input {
