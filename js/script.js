@@ -167,6 +167,7 @@ function saveCatalogSessionState() {
             searchQuery: CURRENT_SEARCH_QUERY,
             filterState: CURRENT_FILTER_STATE,
             categoryRefines: CURRENT_CATEGORY_REFINES,
+            categoryCascade: CURRENT_CATEGORY_CASCADE,
             partWheelDiameters: CURRENT_PART_WHEEL_DIAMETERS,
             scooterWheelDiameters: CURRENT_SCOOTER_WHEEL_DIAMETERS,
             priceSort: CURRENT_PRICE_SORT,
@@ -189,6 +190,7 @@ let CURRENT_FILTER_STATE = Object.assign({
     refine: null,
 }, SAVED_CATALOG_STATE.filterState || {});
 let CURRENT_CATEGORY_REFINES = Array.isArray(SAVED_CATALOG_STATE.categoryRefines) ? SAVED_CATALOG_STATE.categoryRefines : [];
+let CURRENT_CATEGORY_CASCADE = Array.isArray(SAVED_CATALOG_STATE.categoryCascade) ? SAVED_CATALOG_STATE.categoryCascade : [];
 let CURRENT_PART_WHEEL_DIAMETERS = Array.isArray(SAVED_CATALOG_STATE.partWheelDiameters) ? SAVED_CATALOG_STATE.partWheelDiameters : [];
 let CURRENT_SCOOTER_WHEEL_DIAMETERS = Array.isArray(SAVED_CATALOG_STATE.scooterWheelDiameters) ? SAVED_CATALOG_STATE.scooterWheelDiameters : [];
 let CURRENT_PRICE_SORT = SAVED_CATALOG_STATE.priceSort || 'default';
@@ -342,7 +344,7 @@ function productMatchesFilter(product) {
         const catMatch = (product.category || '') === state.category;
         const refineVal = (product.categories && product.categories[1]) || '';
         const refineMatch = state.refine === null || refineVal === state.refine;
-        return catMatch && refineMatch;
+        return catMatch && refineMatch && productMatchesCategoryCascade(product, state, 1);
     }
 
     if (state.type === 'category-refine-multi') {
@@ -354,6 +356,7 @@ function productMatchesFilter(product) {
         const refineIndex = Number.isInteger(state.refineIndex) ? state.refineIndex : 1;
         const refineVal = productCategories[refineIndex] || '';
         const refineMatch = !CURRENT_CATEGORY_REFINES.length || CURRENT_CATEGORY_REFINES.includes(refineVal);
+        const cascadeMatch = productMatchesCategoryCascade(product, state, refineIndex);
         const partDiameterMatch = !PART_WHEEL_DIAMETER_CATEGORIES.has(refineVal)
             || !CURRENT_PART_WHEEL_DIAMETERS.length
             || getPartWheelDiameters(product.name).some(function (diameter) {
@@ -366,10 +369,206 @@ function productMatchesFilter(product) {
             || getScooterWheelDiameters(product).some(function (diameter) {
                 return CURRENT_SCOOTER_WHEEL_DIAMETERS.includes(diameter);
             });
-        return catMatch && subCategoryMatch && refineMatch && partDiameterMatch && scooterDiameterMatch;
+        return catMatch && subCategoryMatch && refineMatch && cascadeMatch && partDiameterMatch && scooterDiameterMatch;
     }
 
     return true;
+}
+
+function productMatchesCategoryCascade(product, state, refineIndex) {
+    const productCategories = Array.isArray(product.categories) ? product.categories : [];
+    const selectedRoots = state.type === 'category-refine'
+        ? (state.refine ? [state.refine] : [])
+        : CURRENT_CATEGORY_REFINES;
+    if (!selectedRoots.length) return true;
+
+    const selections = CURRENT_CATEGORY_CASCADE.filter(function (selection) {
+        return selection
+            && Array.isArray(selection.parentValues)
+            && Array.isArray(selection.values)
+            && selection.values.length > 0
+            && selection.category === state.category
+            && (selection.subCategory || null) === (state.subCategory || null)
+            && selection.refineIndex === refineIndex;
+    });
+
+    function matchesSelectedPath(parentValues) {
+        const selection = selections.find(function (entry) {
+            return entry.parentValues.length === parentValues.length
+                && entry.parentValues.every(function (value, index) { return value === parentValues[index]; });
+        });
+        if (!selection) return true;
+
+        const childValue = productCategories[refineIndex + parentValues.length] || '';
+        if (!selection.values.includes(childValue)) return false;
+        return matchesSelectedPath(parentValues.concat(childValue));
+    }
+
+    return selectedRoots.some(function (rootValue) {
+        return productCategories[refineIndex] === rootValue && matchesSelectedPath([rootValue]);
+    });
+}
+
+function categoryCascadeKey(selection) {
+    return [selection.category, selection.subCategory || '', selection.refineIndex, selection.parentValues.join('\u001f')].join('\u001e');
+}
+
+function isCategoryCascadeExcluded(state, parentValues) {
+    if (state.category === 'Запчасти' && PART_WHEEL_DIAMETER_CATEGORIES.has(parentValues[0])) return true;
+    return state.category === 'Самокаты' && state.subCategory === 'Запчасти для самокатов';
+}
+
+function updateCategoryCascadeFilters() {
+    const container = document.getElementById('catalogCategoryCascadeFilters');
+    if (!container) return;
+
+    const openKeys = new Set();
+    const searchByKey = {};
+    container.querySelectorAll('details[data-cascade-key]').forEach(function (filter) {
+        const key = filter.dataset.cascadeKey;
+        if (filter.open) openKeys.add(key);
+        const search = filter.querySelector('.catalog-multi-filter__search');
+        if (search && search.value) searchByKey[key] = search.value;
+    });
+    container.innerHTML = '';
+
+    const state = CURRENT_FILTER_STATE;
+    const isMultiCategoryFilter = state.type === 'category-refine-multi';
+    const isSingleCategoryRefine = state.type === 'category-refine' && state.refine !== null;
+    if (!isMultiCategoryFilter && !isSingleCategoryRefine) {
+        CURRENT_CATEGORY_CASCADE = [];
+        return;
+    }
+
+    const refineIndex = isMultiCategoryFilter && Number.isInteger(state.refineIndex) ? state.refineIndex : 1;
+    const renderedKeys = new Set();
+
+    function renderChildren(parentValues) {
+        if (!parentValues.length || isCategoryCascadeExcluded(state, parentValues)) return;
+
+        const children = Array.from(new Set(ALL_PRODUCTS
+            .filter(function (product) {
+                if (product.category !== state.category || !Array.isArray(product.categories)) return false;
+                if (state.subCategory && product.categories[1] !== state.subCategory) return false;
+                return parentValues.every(function (parentValue, index) {
+                    return product.categories[refineIndex + index] === parentValue;
+                });
+            })
+            .map(function (product) { return product.categories[refineIndex + parentValues.length]; })
+            .filter(Boolean))).sort(function (left, right) {
+            return left.localeCompare(right, 'ru');
+        });
+        if (!children.length) return;
+
+        const selection = {
+            category: state.category,
+            subCategory: state.subCategory || null,
+            refineIndex: refineIndex,
+            parentValues: parentValues,
+            values: [],
+        };
+        const key = categoryCascadeKey(selection);
+        const savedSelection = CURRENT_CATEGORY_CASCADE.find(function (entry) {
+            return categoryCascadeKey(entry) === key;
+        });
+        selection.values = savedSelection
+            ? savedSelection.values.filter(function (value) { return children.includes(value); })
+            : [];
+        renderedKeys.add(key);
+
+        const filter = document.createElement('details');
+        filter.className = 'catalog-multi-filter';
+        filter.dataset.cascadeKey = key;
+        filter.open = openKeys.has(key);
+
+        const summary = document.createElement('summary');
+        summary.className = 'catalog-multi-filter__trigger';
+        const title = document.createElement('span');
+        title.textContent = parentValues[parentValues.length - 1];
+        const selectedCount = document.createElement('span');
+        selectedCount.className = 'catalog-multi-filter__selection';
+        selectedCount.textContent = selection.values.length ? 'Выбрано: ' + selection.values.length : 'Все';
+        summary.appendChild(title);
+        summary.appendChild(selectedCount);
+        filter.appendChild(summary);
+
+        const menu = document.createElement('div');
+        menu.className = 'catalog-multi-filter__menu';
+        const search = document.createElement('input');
+        search.className = 'catalog-multi-filter__search';
+        search.type = 'search';
+        search.placeholder = 'Поиск по фильтру';
+        search.setAttribute('aria-label', 'Поиск: ' + title.textContent);
+        search.value = searchByKey[key] || '';
+        const options = document.createElement('div');
+        options.className = 'catalog-multi-filter__options';
+        const clear = document.createElement('button');
+        clear.className = 'catalog-multi-filter__clear';
+        clear.type = 'button';
+        clear.textContent = 'Сбросить';
+
+        function saveCascadeSelection(values) {
+            CURRENT_CATEGORY_CASCADE = CURRENT_CATEGORY_CASCADE.filter(function (entry) {
+                return categoryCascadeKey(entry) !== key;
+            });
+            if (values.length) {
+                selection.values = values;
+                CURRENT_CATEGORY_CASCADE.push(selection);
+            }
+            renderInitialProducts();
+        }
+
+        children.forEach(function (child, index) {
+            const label = document.createElement('label');
+            label.className = 'catalog-multi-filter__option';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = 'catalogCategoryCascade-' + renderedKeys.size + '-' + index;
+            checkbox.value = child;
+            checkbox.checked = selection.values.includes(child);
+            checkbox.addEventListener('change', function () {
+                const values = Array.from(options.querySelectorAll('input:checked')).map(function (input) {
+                    return input.value;
+                });
+                saveCascadeSelection(values);
+            });
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(child));
+            options.appendChild(label);
+        });
+
+        search.addEventListener('input', function () {
+            searchByKey[key] = search.value;
+            const query = normalizeString(search.value);
+            options.querySelectorAll('.catalog-multi-filter__option').forEach(function (label) {
+                label.hidden = !normalizeString(label.textContent).includes(query);
+            });
+        });
+        clear.addEventListener('click', function () {
+            options.querySelectorAll('input').forEach(function (checkbox) { checkbox.checked = false; });
+            saveCascadeSelection([]);
+        });
+
+        menu.appendChild(search);
+        menu.appendChild(options);
+        menu.appendChild(clear);
+        filter.appendChild(menu);
+        container.appendChild(filter);
+
+        if (selection.values.length) {
+            selection.values.forEach(function (value) {
+                renderChildren(parentValues.concat(value));
+            });
+        }
+    }
+
+    const rootValues = isMultiCategoryFilter ? CURRENT_CATEGORY_REFINES : [state.refine];
+    rootValues.forEach(function (rootValue) {
+        renderChildren([rootValue]);
+    });
+    CURRENT_CATEGORY_CASCADE = CURRENT_CATEGORY_CASCADE.filter(function (selection) {
+        return renderedKeys.has(categoryCascadeKey(selection));
+    });
 }
 
 function productHasStockAtWarehouses(product, warehouseNames) {
@@ -401,13 +600,11 @@ function getFilteredProducts() {
 
     if (CURRENT_PRICE_SORT === 'price-asc') {
         filtered.sort(function (a, b) {
-            return getDiscountInfo(a.price, a.discountPercent, a.discountAmount).finalPrice
-                - getDiscountInfo(b.price, b.discountPercent, b.discountAmount).finalPrice;
+            return getProductStartingPriceInfo(a).finalPrice - getProductStartingPriceInfo(b).finalPrice;
         });
     } else if (CURRENT_PRICE_SORT === 'price-desc') {
         filtered.sort(function (a, b) {
-            return getDiscountInfo(b.price, b.discountPercent, b.discountAmount).finalPrice
-                - getDiscountInfo(a.price, a.discountPercent, a.discountAmount).finalPrice;
+            return getProductStartingPriceInfo(b).finalPrice - getProductStartingPriceInfo(a).finalPrice;
         });
     }
 
@@ -458,6 +655,19 @@ function getBikeTypes(product) {
     }
 
     return Array.from(new Set(bikeTypes));
+}
+
+function getProductStartingPriceInfo(product) {
+    const candidates = [getDiscountInfo(product.price, product.discountPercent, product.discountAmount)];
+    getAvailableVariants(product).forEach(function (variant) {
+        if (Number(variant.price) > 0) {
+            candidates.push(getDiscountInfo(variant.price, variant.discountPercent, variant.discountAmount));
+        }
+    });
+
+    return candidates.reduce(function (minimum, candidate) {
+        return candidate.finalPrice < minimum.finalPrice ? candidate : minimum;
+    });
 }
 
 function getBikeBrand(product) {
@@ -854,6 +1064,7 @@ function renderInitialProducts() {
     updateWheelDiameterFilter();
     updatePartWheelDiameterFilter();
     updateScooterWheelDiameterFilter();
+    updateCategoryCascadeFilters();
     saveCatalogSessionState();
     clearProducts();
     hideNoResults();
@@ -1252,6 +1463,8 @@ if (productsContainer) {
 
 function buildProductCard(product) {
     const availableVariants = getAvailableVariants(product);
+    const hasCharacteristics = Array.isArray(product.variants) && product.variants.length > 0;
+    const productPriceInfo = getProductStartingPriceInfo(product);
     const firstVariantImage = availableVariants.find(function (variant) {
         return variant.image && variant.image !== 'img/no-image.jpg';
     });
@@ -1261,11 +1474,11 @@ function buildProductCard(product) {
     const article = document.createElement('article');
     article.className = 'product';
     article.dataset.category = product.category || '';
-    article.dataset.price = product.price || 0;
+    article.dataset.price = productPriceInfo.finalPrice;
     article.dataset.productId = product.id || '';
     article.dataset.productName = product.name || '';
     article.dataset.productImage = cardImage;
-    article.dataset.productPrice = product.price || 0;
+    article.dataset.productPrice = productPriceInfo.finalPrice;
 
     if (product.categories && product.categories.length > 1) {
         article.dataset.brand = product.categories[1];
@@ -1316,27 +1529,26 @@ function buildProductCard(product) {
     link.appendChild(imageWrap);
     link.appendChild(title);
 
-    const productDiscount = getDiscountInfo(product.price, product.discountPercent, product.discountAmount);
     const priceWrap = document.createElement('div');
     priceWrap.className = 'product__price-wrap';
 
     const price = document.createElement('p');
     price.className = 'product__price';
-    price.textContent = productDiscount.finalPrice.toLocaleString('ru-RU') + ' ₽';
+    price.textContent = (hasCharacteristics ? 'от ' : '') + productPriceInfo.finalPrice.toLocaleString('ru-RU') + ' ₽';
 
-    if (productDiscount.hasDiscount && productDiscount.oldPrice !== null) {
+    if (productPriceInfo.hasDiscount && productPriceInfo.oldPrice !== null) {
         const oldPrice = document.createElement('span');
         oldPrice.className = 'product__old-price';
-        oldPrice.textContent = productDiscount.oldPrice.toLocaleString('ru-RU') + ' ₽';
+        oldPrice.textContent = productPriceInfo.oldPrice.toLocaleString('ru-RU') + ' ₽';
         priceWrap.appendChild(oldPrice);
     }
 
     priceWrap.appendChild(price);
 
-    if (productDiscount.hasDiscount) {
+    if (productPriceInfo.hasDiscount) {
         const discountBadge = document.createElement('span');
         discountBadge.className = 'product__discount';
-        discountBadge.textContent = '-' + productDiscount.discountPercent + '%';
+        discountBadge.textContent = '-' + productPriceInfo.discountPercent + '%';
         priceWrap.appendChild(discountBadge);
     }
 
@@ -1369,6 +1581,7 @@ function initFilters(products) {
     const categoryRefineOptions = document.getElementById('catalogCategoryRefineOptions');
     const categoryRefineSearch = document.getElementById('catalogCategoryRefineSearch');
     const clearCategoryRefineFilter = document.getElementById('clearCategoryRefineFilter');
+    const categoryCascadeFilters = document.getElementById('catalogCategoryCascadeFilters');
     const bikeBrandContainer = document.getElementById('bikeBrandContainer');
     const filtersTrack = document.getElementById('filtersTrack');
     const backBtn = document.getElementById('backBtn');
@@ -1884,6 +2097,12 @@ function initFilters(products) {
         ? Object.assign({}, CURRENT_FILTER_STATE)
         : null;
     const initialCategoryRefineValues = CURRENT_CATEGORY_REFINES.slice();
+    const initialCategoryCascade = CURRENT_CATEGORY_CASCADE.map(function (selection) {
+        return Object.assign({}, selection, {
+            parentValues: selection.parentValues.slice(),
+            values: selection.values.slice(),
+        });
+    });
     const initialPartWheelDiameters = CURRENT_PART_WHEEL_DIAMETERS.slice();
     const initialScooterWheelDiameters = CURRENT_SCOOTER_WHEEL_DIAMETERS.slice();
     const initialCategory = initialBikeState
@@ -1934,6 +2153,7 @@ function initFilters(products) {
                 }
             }
             if (initialRefineState && initialRefineState.refine) {
+                CURRENT_CATEGORY_CASCADE = initialCategoryCascade;
                 const refineButton = Array.from(refineContainer.querySelectorAll('[data-refine]')).find(function (button) {
                     return button.dataset.refine === initialRefineState.refine;
                 });
@@ -1941,6 +2161,7 @@ function initFilters(products) {
             }
             if (initialCategoryRefineState) {
                 CURRENT_CATEGORY_REFINES = initialCategoryRefineValues;
+                CURRENT_CATEGORY_CASCADE = initialCategoryCascade;
                 CURRENT_PART_WHEEL_DIAMETERS = initialPartWheelDiameters;
                 CURRENT_SCOOTER_WHEEL_DIAMETERS = initialScooterWheelDiameters;
                 CURRENT_FILTER_STATE = initialCategoryRefineState;
@@ -2543,13 +2764,14 @@ function renderProduct(product) {
         info.appendChild(article);
     }
 
-    const productPriceInfo = getDiscountInfo(product.price, product.discountPercent, product.discountAmount);
+    const availableVariants = getAvailableVariants(product);
+    const productPriceInfo = getProductStartingPriceInfo(product);
     const priceWrap = document.createElement('div');
     priceWrap.className = 'product-page__price-wrap';
 
     const price = document.createElement('p');
     price.className = 'product-page__price';
-    price.textContent = productPriceInfo.finalPrice.toLocaleString('ru-RU') + ' ₽';
+    price.textContent = (availableVariants.length ? 'от ' : '') + productPriceInfo.finalPrice.toLocaleString('ru-RU') + ' ₽';
 
     if (productPriceInfo.hasDiscount && productPriceInfo.oldPrice !== null) {
         const oldPrice = document.createElement('span');
@@ -2571,7 +2793,6 @@ function renderProduct(product) {
 
     let selectedVariant = null;
     let renderVariantSpecs = function () {};
-    const availableVariants = getAvailableVariants(product);
 
     if (availableVariants.length > 0) {
         const variantBlock = document.createElement('div');
@@ -2746,29 +2967,6 @@ function renderProduct(product) {
     }
 
     updateStockBlock(selectedVariant || product);
-
-    if (selectedVariant) {
-        const variantDiscount = getDiscountInfo(selectedVariant.price, selectedVariant.discountPercent, selectedVariant.discountAmount);
-        price.textContent = variantDiscount.finalPrice.toLocaleString('ru-RU') + ' ₽';
-        const oldPriceEl = priceWrap.querySelector('.product-page__old-price');
-        const discountEl = priceWrap.querySelector('.product-page__discount');
-        if (oldPriceEl) oldPriceEl.remove();
-        if (discountEl) discountEl.remove();
-
-        if (variantDiscount.hasDiscount && variantDiscount.oldPrice !== null) {
-            const oldPrice = document.createElement('span');
-            oldPrice.className = 'product-page__old-price';
-            oldPrice.textContent = variantDiscount.oldPrice.toLocaleString('ru-RU') + ' ₽';
-            priceWrap.insertBefore(oldPrice, price);
-        }
-
-        if (variantDiscount.hasDiscount) {
-            const discountBadge = document.createElement('span');
-            discountBadge.className = 'product-page__discount';
-            discountBadge.textContent = '-' + variantDiscount.discountPercent + '%';
-            priceWrap.appendChild(discountBadge);
-        }
-    }
 
     // initAddToCart();
 }
