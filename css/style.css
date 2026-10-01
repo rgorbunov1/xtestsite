@@ -2411,6 +2411,23 @@ a.product-page__stock-location:focus-visible {
         font-size: 13px;
     }
 
+    .catalog-multi-filter {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .catalog-multi-filter[open] {
+        z-index: 10;
+    }
+
+    .catalog-multi-filter__menu {
+        right: auto;
+        left: 0;
+        width: min(360px, calc(100vw - 40px));
+        max-width: calc(100vw - 40px);
+    }
+
     .hero-carousel {
         display: flex;
         flex-direction: column;
