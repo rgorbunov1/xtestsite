@@ -20,22 +20,32 @@ const IMAGE_COLUMNS = new Set([
     'variant_image_9',
     'variant_image_10',
 ]);
+const EXCEL_ERROR_PATTERN = /^#(?:NULL!|DIV\/0!|VALUE!|REF!|NAME\?|NUM!|N\/A|SPILL!|CALC!|FIELD!|BLOCKED!|UNKNOWN!|CONNECT!|BUSY!|GETTING_DATA)$/i;
 
 function normalizeValue(value) {
     if (value === undefined || value === null) return '';
     return String(value).trim();
 }
 
-function cellToValue(cell) {
-    const value = cell.value;
-    if (value === null || value === undefined) return '';
-    if (typeof value === 'object') {
-        if (value.hyperlink) return value.hyperlink;
-        if (Array.isArray(value.richText)) return value.richText.map((item) => item.text).join('');
-        if (value.result !== undefined) return value.result;
-        return cell.text || '';
+function cellToValue(cell, column, rowNumber) {
+    let cellValue = cell.value;
+    if (cellValue === null || cellValue === undefined) return '';
+    if (typeof cellValue === 'object') {
+        if (cellValue.hyperlink) cellValue = cellValue.hyperlink;
+        else if (Array.isArray(cellValue.richText)) cellValue = cellValue.richText.map((item) => item.text).join('');
+        else if (cellValue.result !== undefined) cellValue = cellValue.result;
+        else cellValue = cell.text || '';
     }
-    return value;
+
+    if (IMAGE_COLUMNS.has(column) && typeof cellValue === 'string' && EXCEL_ERROR_PATTERN.test(cellValue.trim())) {
+        throw new Error(
+            `В строке ${rowNumber}, поле ${column}, найдено значение ${cellValue}. ` +
+            'Формулы IMAGE() и режим «Поместить в ячейку» не поддерживаются. ' +
+            'Вставьте изображение как обычный объект поверх ячейки, сохраните и закройте книгу перед синхронизацией.'
+        );
+    }
+
+    return cellValue;
 }
 
 function safeFilenamePart(value) {
@@ -54,7 +64,7 @@ async function readProductExtraWorkbook(workbookPath, rootDir, expectedHeaders) 
         const worksheetRow = worksheet.getRow(rowNumber);
         const row = {};
         headers.forEach((header, index) => {
-            if (header) row[header] = cellToValue(worksheetRow.getCell(index + 1));
+            if (header) row[header] = cellToValue(worksheetRow.getCell(index + 1), header, rowNumber);
         });
         rows.push(row);
     }
