@@ -38,11 +38,11 @@ function cellToValue(cell, column, rowNumber) {
     }
 
     if (IMAGE_COLUMNS.has(column) && typeof cellValue === 'string' && EXCEL_ERROR_PATTERN.test(cellValue.trim())) {
-        throw new Error(
-            `В строке ${rowNumber}, поле ${column}, найдено значение ${cellValue}. ` +
-            'Формулы IMAGE() и режим «Поместить в ячейку» не поддерживаются. ' +
-            'Вставьте изображение как обычный объект поверх ячейки, сохраните и закройте книгу перед синхронизацией.'
+        console.warn(
+            `Предупреждение: в строке ${rowNumber}, поле ${column}, найдено ${cellValue}; значение пропущено. ` +
+            'Для загрузки картинки вставьте её как обычный объект поверх ячейки.'
         );
+        return '';
     }
 
     return cellValue;
