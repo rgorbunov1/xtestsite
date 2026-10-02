@@ -947,12 +947,6 @@ function initCatalogControls(products) {
     if (clearAllCatalogFilters) {
         clearAllCatalogFilters.addEventListener('click', function () {
             CURRENT_SEARCH_QUERY = '';
-            CURRENT_FILTER_STATE = {
-                type: 'all',
-                categories: [],
-                category: null,
-                refine: null,
-            };
             CURRENT_CATEGORY_REFINES = [];
             CURRENT_PART_WHEEL_DIAMETERS = [];
             CURRENT_SCOOTER_WHEEL_DIAMETERS = [];
@@ -981,22 +975,7 @@ function initCatalogControls(products) {
             updateMultiFilterSelection('wheelDiameterSelection', 0);
             updateMultiFilterSelection('warehouseSelection', 0);
 
-            const filtersTrack = document.getElementById('filtersTrack');
-            if (filtersTrack) {
-                filtersTrack.classList.remove('filters-track--subs', 'filters-track--refine', 'filters-track--bike-brands');
-            }
-            document.querySelectorAll('.filters__btn--active').forEach(function (button) {
-                button.classList.remove('filters__btn--active');
-            });
-            const subfiltersContainer = document.getElementById('subfiltersContainer');
-            const refineContainer = document.getElementById('refineContainer');
-            const bikeBrandContainer = document.getElementById('bikeBrandContainer');
-            if (subfiltersContainer) subfiltersContainer.innerHTML = '';
-            if (refineContainer) refineContainer.innerHTML = '';
-            if (bikeBrandContainer) bikeBrandContainer.innerHTML = '';
-
             const url = new URL(window.location.href);
-            url.searchParams.delete('category');
             url.searchParams.delete('search');
             window.history.replaceState({}, '', url.toString());
 
@@ -1699,7 +1678,7 @@ function initFilters(products) {
                 renderInitialProducts();
             });
             label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(refine));
+            label.appendChild(document.createTextNode(refine.split('/')[0].trim()));
             categoryRefineOptions.appendChild(label);
         });
 
@@ -2792,6 +2771,7 @@ function renderProduct(product) {
     info.appendChild(priceWrap);
 
     let selectedVariant = null;
+    let variantSelect = null;
     let renderVariantSpecs = function () {};
 
     if (availableVariants.length > 0) {
@@ -2807,6 +2787,7 @@ function renderProduct(product) {
         const select = document.createElement('select');
         select.className = 'product-page__select';
         select.id = 'variantSelect';
+        variantSelect = select;
 
         availableVariants.forEach(function (variant) {
             const option = document.createElement('option');
@@ -2821,7 +2802,7 @@ function renderProduct(product) {
         select.addEventListener('change', function () {
             const variantId = this.value;
             const variant = availableVariants.find(function (v) {
-                return v.id === variantId;
+                return String(v.id) === variantId;
             });
             if (variant) {
                 selectedVariant = variant;
@@ -2853,6 +2834,7 @@ function renderProduct(product) {
         });
 
         selectedVariant = availableVariants[0];
+        select.selectedIndex = 0;
         setGalleryItem(selectedVariant);
     } else if (!productHasAnyStock(product)) {
         if (productContainer) {
@@ -2966,7 +2948,11 @@ function renderProduct(product) {
         info.appendChild(description);
     }
 
-    updateStockBlock(selectedVariant || product);
+    if (variantSelect) {
+        variantSelect.dispatchEvent(new Event('change'));
+    } else {
+        updateStockBlock(product);
+    }
 
     // initAddToCart();
 }
