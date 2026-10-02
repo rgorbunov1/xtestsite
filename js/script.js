@@ -1678,7 +1678,7 @@ function initFilters(products) {
                 renderInitialProducts();
             });
             label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(refine.split('/')[0].trim()));
+            label.appendChild(document.createTextNode(refine));
             categoryRefineOptions.appendChild(label);
         });
 
