@@ -6693,7 +6693,7 @@
     "image": "img/no-image.jpg",
     "alt": "БМХ \"ТТ Goof\"",
     "stockByWarehouse": [],
-    "stock": 1248,
+    "stock": 7,
     "variants": [
       {
         "id": "0027df52-90fd-11ea-aa01-40b076107aa6",
@@ -6786,7 +6786,7 @@
         "id": "2dd9fda3-c417-11ed-9742-2c56dc9bb924",
         "name": "20\", Чёрный",
         "price": 16100,
-        "stock": 1244,
+        "stock": 3,
         "stockByWarehouse": [
           {
             "name": "На складе",
@@ -6794,7 +6794,7 @@
           },
           {
             "name": "Парк",
-            "qty": 1242
+            "qty": 1
           },
           {
             "name": "Меркурий (С остатками)",
