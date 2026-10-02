@@ -152,9 +152,19 @@ function loadCatalogData() {
 
 const PAGE_SIZE = 24;
 const CATALOG_SESSION_KEY = 'startshop.catalog-filters.v1';
+const CATALOG_RESTORE_KEY = 'startshop.catalog-filters.restore';
+const CATALOG_PRODUCT_SOURCE_KEY = 'startshop.catalog-product-source';
 
 function readCatalogSessionState() {
+    if (!productsContainer) return {};
+
     try {
+        const shouldRestore = sessionStorage.getItem(CATALOG_RESTORE_KEY) === 'true';
+        sessionStorage.removeItem(CATALOG_RESTORE_KEY);
+        if (!shouldRestore) {
+            sessionStorage.removeItem(CATALOG_SESSION_KEY);
+            return {};
+        }
         return JSON.parse(sessionStorage.getItem(CATALOG_SESSION_KEY) || '{}');
     } catch (error) {
         return {};
@@ -180,6 +190,23 @@ function saveCatalogSessionState() {
 }
 
 const SAVED_CATALOG_STATE = readCatalogSessionState();
+
+if (productsContainer) {
+    window.addEventListener('pageshow', function (event) {
+        if (!event.persisted) return;
+
+        let shouldRestore = false;
+        try {
+            shouldRestore = sessionStorage.getItem(CATALOG_RESTORE_KEY) === 'true';
+            sessionStorage.removeItem(CATALOG_RESTORE_KEY);
+            if (!shouldRestore) sessionStorage.removeItem(CATALOG_SESSION_KEY);
+        } catch (error) {
+            shouldRestore = false;
+        }
+
+        if (!shouldRestore) window.location.reload();
+    });
+}
 
 let ALL_PRODUCTS = [];
 let CURRENT_SEARCH_QUERY = SAVED_CATALOG_STATE.searchQuery || '';
@@ -1469,6 +1496,15 @@ function buildProductCard(product) {
     const link = document.createElement('a');
     link.href = 'product.html?id=' + product.id;
     link.className = 'product__link';
+    if (productsContainer) {
+        link.addEventListener('click', function () {
+            try {
+                sessionStorage.setItem(CATALOG_PRODUCT_SOURCE_KEY, window.location.href);
+            } catch (error) {
+                return;
+            }
+        });
+    }
 
     const imageWrap = document.createElement('div');
     imageWrap.className = 'product__image';
@@ -2476,6 +2512,19 @@ if (productContainer) {
 function loadProductPage() {
     const params = new URLSearchParams(window.location.search);
     const productId = params.get('id');
+    let cameFromCatalog = false;
+
+    try {
+        const source = sessionStorage.getItem(CATALOG_PRODUCT_SOURCE_KEY);
+        sessionStorage.removeItem(CATALOG_PRODUCT_SOURCE_KEY);
+        if (source) {
+            const sourceUrl = new URL(source, window.location.href);
+            const catalogUrl = new URL('catalog.html', window.location.href);
+            cameFromCatalog = sourceUrl.origin === catalogUrl.origin && sourceUrl.pathname === catalogUrl.pathname;
+        }
+    } catch (error) {
+        cameFromCatalog = false;
+    }
 
     if (!productId) {
         productContainer.innerHTML = '<p>Товар не указан.</p>';
@@ -2495,7 +2544,7 @@ function loadProductPage() {
                 return;
             }
 
-            renderProduct(product);
+            renderProduct(product, cameFromCatalog);
         })
         .catch(function (error) {
             console.error('Ошибка загрузки:', error);
@@ -2505,7 +2554,7 @@ function loadProductPage() {
         });
 }
 
-function renderProduct(product) {
+function renderProduct(product, cameFromCatalog) {
     productContainer.innerHTML = '';
 
     const breadcrumb = document.getElementById('productBreadcrumb');
@@ -2521,6 +2570,13 @@ function renderProduct(product) {
     backBtn.innerHTML = '<span class="product-page__back-btn-icon" aria-hidden="true">←</span><span class="product-page__back-btn-label">Назад</span>';
     backBtn.addEventListener('click', function (event) {
         event.preventDefault();
+        if (cameFromCatalog) {
+            try {
+                sessionStorage.setItem(CATALOG_RESTORE_KEY, 'true');
+            } catch (error) {
+                console.warn('Не удалось временно сохранить фильтры каталога:', error);
+            }
+        }
         if (window.history.length > 1) {
             window.history.back();
         } else {
