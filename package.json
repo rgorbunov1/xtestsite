@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "exceljs": "^4.4.0"
+    "exceljs": "^4.4.0",
+    "jszip": "^3.10.2",
+    "saxes": "^6.0.0",
+    "sharp": "^0.35.5"
   }
 }
