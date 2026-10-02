@@ -2248,6 +2248,21 @@ function initAddToCart() {
 }
 
 const popularProductsContainer = document.getElementById('popularProducts');
+let popularProductsLoaded = !popularProductsContainer;
+let pendingFooterNavigation = false;
+
+function scrollToFooter() {
+    pendingFooterNavigation = false;
+    const footer = document.getElementById('footer');
+    if (!footer) return;
+
+    if (window.location.hash !== '#footer') {
+        window.history.pushState({}, '', '#footer');
+    }
+    requestAnimationFrame(function () {
+        footer.scrollIntoView({ behavior: 'smooth' });
+    });
+}
 
 function shuffleArray(items) {
     const shuffled = [...items];
@@ -2305,7 +2320,23 @@ if (popularProductsContainer) {
         })
         .catch(function (error) {
             console.error('Ошибка загрузки популярных товаров:', error);
+        })
+        .then(function () {
+            popularProductsLoaded = true;
+            if (pendingFooterNavigation || window.location.hash === '#footer') scrollToFooter();
         });
+
+    document.addEventListener('click', function (event) {
+        const footerLink = event.target.closest('a[href="#footer"]');
+        if (!footerLink) return;
+
+        event.preventDefault();
+        if (popularProductsLoaded) {
+            scrollToFooter();
+            return;
+        }
+        pendingFooterNavigation = true;
+    });
 }
 
 const heroSlides = Array.from(document.querySelectorAll('.hero-slide'));
