@@ -1,0 +1,243 @@
+{
+  "season": "winter",
+  "seasonIndependentCategories": [],
+  "showProductSpecs": false,
+  "productsWithVariantsAsProducts": [
+    "09770526-0b57-11e9-9bf0-7085c27245f3",
+    "9b71e805-4fb4-11e9-9bfa-7085c27245f3",
+    "1d412970-4f8a-11e9-9bfa-7085c27245f3",
+    "6c42e2a4-7e46-11eb-aa42-503eaa5d488e",
+    "1d412977-4f8a-11e9-9bfa-7085c27245f3",
+    "1d41297c-4f8a-11e9-9bfa-7085c27245f3",
+    "90b53688-5c5b-11e9-9bfe-7085c27245f3",
+    "1d412983-4f8a-11e9-9bfa-7085c27245f3",
+    "d47cae17-a473-11ed-83b1-8c882b05ac42",
+    "cefe455e-771d-11ef-9834-2c56dc9bb924"
+  ],
+  "productPageSelectionRules": {
+    "bicyclesAdultImage": "img/Вело-вз.jpg",
+    "bicyclesTeenImage": "img/Вело-подр.jpg",
+    "bicyclesChildImage": "img/Вело-дет2.jpg",
+    "crossCountrySkisImage": "img/Лыжи.png"
+  },
+  "contact": {
+    "chatUrl": "https://vk.ru/im?sel=-202185545",
+    "phone": "8 (915) 954-18-12",
+    "email": "client@start52.ru"
+  },
+  "social": {
+    "vk": "https://vk.ru/start__dzr",
+    "max": ""
+  },
+  "productPageBadges": [
+    {
+      "image": "img/chz.jpg",
+      "text": "Будьте уверены в подлинности товара в магазинах CТАРТ - сканируйте код маркировки на товаре или коробке через приложение \"Честный знак\".",
+      "width": "",
+      "height": "",
+      "category": ["Велосипеды", "Бутсы футбольные", "Ботинки лыжные"],
+      "productId": [],
+      "variantId": []
+    },
+    {
+      "image": "img/glc.jpg",
+      "text": "Нашли дешевле*? Сделаем скидку!",
+      "note": "*Среди оффлайн-магазинов.",
+      "noteFontSize": "11px",
+      "width": "18%",
+      "height": "",
+      "category": ["Велосипеды", "Самокаты"],
+      "productId": [],
+      "variantId": []
+    },
+    {
+      "image": "img/sale.jpg",
+      "text": "Скидка за подписку на рассылку в VK",
+      "noteFontSize": "11px",
+      "width": "14%",
+      "height": "",
+      "category": [],
+      "categorySource": "sales",
+      "productId": [],
+      "variantId": []
+    }
+
+  ],
+  "manufacturerLinks": [
+    {
+      "category": "Велосипеды",
+      "manufacturer": "Tech Team",
+      "url": "https://techteam.ru/catalog/velosipedy"
+    },
+    {
+      "category": "Велосипеды",
+      "manufacturer": "HARTMAN",
+      "url": "https://hartmanbike.ru/?ysclid=mvaiwjzldk273144323"
+    },
+    {
+      "category": "Трюковые",
+      "url": "https://techteam.ru/catalog/samokaty"
+    },
+    {
+      "category": "Сапборды",
+      "url": "https://techteam.ru/catalog/sapbordy"
+    }
+  ],
+  "warehouses": {
+    "На складе": { "visible": true, "mapUrl": "", "phone": "" },
+    "Парк": {
+      "visible": true,
+      "mapUrl": "https://yandex.ru/maps/972/dzerzhinsk/?indoorLevel=1&ll=43.463123%2C56.236623&mode=poi&poi%5Bpoint%5D=43.463712%2C56.237148&poi%5Buri%5D=ymapsbm1%3A%2F%2Forg%3Foid%3D98788320235&z=18",
+      "phone": "8 (915) 954-18-12"
+    },
+    "Меркурий": {
+      "visible": true,
+      "mapUrl": "https://yandex.ru/maps/org/start/161715616541/?ll=43.399178%2C56.228487&z=17",
+      "phone": "8 (933) 431-20-70"
+    },
+    "Нижний Новгород": {
+      "visible": true,
+      "mapUrl": "https://yandex.ru/maps/org/start/243237693071/?ll=43.853342%2C56.257286&z=18.6",
+      "phone": "8 (930) 210-10-01"
+    }
+  },
+  "catalogSiteRules": {
+    "groups": {
+      "Велоспорт": ["Велосипеды", "Запчасти", "Аксессуары для велосипедов"],
+      "Самокаты": ["Самокаты", "Защита", "Шлема", "Запчасти для самокатов"],
+      "Скейтборды": ["Скейтборды", "Защита", "Шлема", "Запчасти для скейтбордов"],
+      "Ролики": ["Ролики", "Защита", "Шлема", "Аксессуары для роликов"],
+      "Виды спорта": [
+        "Футбол",
+        "Баскетбол",
+        "Волейбол",
+        "Бейсбол",
+        "Для плавания",
+        "Бокс",
+        "Теннис",
+        "Бадминтон",
+        "Дартс",
+        "Для хоккея",
+        "Супорта"
+      ],
+      "Фитнес и тренировки": ["Гимнастика", "Силовые", "Эспандеры/нунчаки", "Турники", "Спорт дома"],
+      "Аксессуары": ["Носки", "Очки", "Зонты", "Шейкеры"],
+      "Туризм и отдых": ["Отдых на природе", "Мешки для обуви", "Сапборды", "Жилет страховочный"],
+      "Игры": ["Детская витрина"]
+    },
+    "rootCategoryRewrites": {
+      "Бутсы футбольные": "Футбол",
+      "Ботинки лыжные": "Лыжный спорт"
+    },
+    "nestedCategoryRewrites": {
+      "Коньки": {
+        "Шнурки": ["Аксессуары для коньков", "Шнурки"]
+      }
+    },
+    "categoryPathRewrites": [
+      {
+        "category": "Бокс",
+        "path": ["Защита", "Шлема"],
+        "exact": true,
+        "replacement": ["Боксёрские шлема"]
+      }
+    ],
+    "flattenNestedCategories": ["Защита"],
+    "filterLabels": {
+      "Ботинки лыжные": "Производитель"
+    },
+    "scooterClampBoltFilters": [
+      { "value": "1", "label": "1 болт", "parentProductIds": [] },
+      { "value": "2", "label": "2 болта", "parentProductIds": ["6c42e2a4-7e46-11eb-aa42-503eaa5d488e"] },
+      { "value": "3", "label": "3 болта", "parentProductIds": ["1d412977-4f8a-11e9-9bfa-7085c27245f3"] },
+      { "value": "4", "label": "4 болта", "parentProductIds": ["1d41297c-4f8a-11e9-9bfa-7085c27245f3"] }
+    ],
+    "bikeTypeOrder": ["Детские", "Подростковые", "Взрослые", "Трюковые", "Городские", "Беговелы", "Трехколесные"],
+    "scooterTypeOrder": ["Городские", "Трюковые", "Трех колесные", "Зимние самокаты"],
+    "seasonalGroups": {
+      "winter": {
+        "name": "Зимний спорт",
+        "expandInSeason": "winter",
+        "refineOrder": ["Лыжи", "Ботинки лыжные", "Лыжные палки", "Аксессуары для лыж"],
+        "productOrderByCategory": {
+          "Санки/снегокаты/тюбинги/сноуборды": [
+            "Снегокаты",
+            "Тюбинги",
+            "Санки",
+            "Сноуборды",
+            "Аксессуары и запчасти"
+          ]
+        },
+        "categories": [
+          "Лыжный спорт",
+          "Ледянки",
+          "Коньки",
+          "Аксессуары Зима",
+          "Варежки/Перчатки",
+          "Санки/снегокаты/тюбинги/сноуборды"
+        ]
+      },
+      "summer": {
+        "name": "Летний спорт",
+        "mergeInSeason": "winter",
+        "mergeGroups": ["Велоспорт", "Самокаты", "Скейтборды", "Ролики"],
+        "standaloneGroups": [
+          { "name": "Сапборды", "categories": ["Сапборды"], "afterGroup": "Ролики" }
+        ],
+        "categories": [
+          "Велосипеды",
+          "Запчасти",
+          "Аксессуары для велосипедов",
+          "Самокаты",
+          "Защита",
+          "Шлема",
+          "Запчасти для самокатов",
+          "Скейтборды",
+          "Запчасти для скейтбордов",
+          "Ролики",
+          "Аксессуары для роликов"
+        ]
+      }
+    }
+  },
+  "hiddenProductCategories": ["без шк", "на удаление"],
+  "popularProducts": {
+    "perGroup": 2,
+    "summer": [
+      { "category": "Велосипеды" },
+      { "category": "Самокаты", "anyCategories": ["Городские", "Трюковые", "Детские"] },
+      { "category": "Сапборды" }
+    ],
+    "winter": [
+      { "category": "Лыжный спорт", "anyCategories": ["Лыжи"] },
+      { "category": "Санки/снегокаты/тюбинги/сноуборды", "anyCategories": ["Снегокаты"] },
+      { "category": "Коньки", "anyCategories": ["раздвижные", "фигурные", "хоккейные"] }
+    ]
+  },
+  "productRecommendations": {
+    "rules": [
+      {
+        "main": {
+          "categories": ["Лыжи"],
+          "productIds": []
+        },
+        "recommended": {
+          "productIds": [],
+          "categories": [["Ботинки лыжные", 4], ["Лыжный спорт", "Лыжные палки", "Палки", 2]]
+        }
+      },
+      {
+        "main": {
+          "categories": ["Ролики"],
+          "productIds": []
+        },
+        "recommended": {
+          "productIds": [],
+          "categories": [["Шлема", 4], ["Защита", 2]]
+        }
+      }
+    ]
+  },
+  "snowfallFlakeCount": 48,
+  "carouselAutoplayDelay": 6000
+}

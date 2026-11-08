@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ошибка 404 — START</title>
+    <link rel="icon" type="image/png" href="img/favicon.png?v=20261025" />
+    <link rel="stylesheet" href="css/style.css?v=20261025-favicon-logo" />
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=113790455', 'ym');
+
+        ym(113790455, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/113790455" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
+  </head>
+  <body>
+    <header class="header">
+      <div class="container header__inner">
+        <a href="index.html" class="logo" aria-label="Главная страница">
+          <img class="img__logo" src="img/logo.png" alt="START" />
+        </a>
+
+        <nav class="nav" id="nav">
+          <a href="index.html" class="nav__link">Главная</a>
+          <a href="catalog.html" class="nav__link">Каталог</a>
+          <a href="index.html#features" class="nav__link">О нас</a>
+          <a href="index.html#footer" class="nav__link">Контакты</a>
+        </nav>
+
+        <form class="search" id="searchForm">
+          <input
+            class="search__input"
+            type="text"
+            id="searchInput"
+            placeholder="Поиск товаров..."
+            aria-label="Поиск товаров"
+          />
+          <button class="search__btn" type="submit" aria-label="Найти">🔍</button>
+        </form>
+
+        <div class="header__actions">
+          <button class="burger" id="burger" aria-label="Меню">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="error-page">
+        <div class="container error-page__inner">
+          <div class="error-page__content">
+            <span class="error-page__badge">Ошибка 404</span>
+            <h1 class="error-page__code">404</h1>
+            <h2 class="error-page__title">Страница не найдена</h2>
+            <p class="error-page__text">
+              Возможно, страница была удалена, перемещена или обновлена. Для
+              продолжения можно вернуться на главную страницу или открыть каталог.
+            </p>
+
+            <div class="error-page__actions">
+              <a href="index.html" class="btn btn--primary">На главную</a>
+              <a href="catalog.html" class="btn btn--outline">В каталог</a>
+            </div>
+          </div>
+
+          <div class="error-page__panel" aria-label="Полезные ссылки">
+            <div class="error-page__card">
+              <p class="error-page__label">Полезные ссылки</p>
+              <ul class="error-page__list">
+                <li><a href="index.html">Главная</a></li>
+                <li><a href="catalog.html">Каталог товаров</a></li>
+                <li><a href="index.html#features">О компании</a></li>
+                <li><a href="index.html#footer">Контакты</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

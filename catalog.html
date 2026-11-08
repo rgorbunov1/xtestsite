@@ -4,7 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Каталог — START</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/png" href="img/favicon.png?v=20261025">
+    <link rel="stylesheet" href="css/style.css?v=20261025-favicon-logo">
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=113790455', 'ym');
+
+        ym(113790455, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/113790455" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
 </head>
 <body>
 
@@ -108,7 +122,21 @@
                             <button class="catalog-multi-filter__clear" id="clearCategoryRefineFilter" type="button">Сбросить</button>
                         </div>
                     </details>
+                    <label class="catalog-control" id="catalogScooterClampBoltFilter" hidden>
+                        <span>Количество болтов</span>
+                        <select id="catalogScooterClampBoltCount">
+                            <option value="">Все зажимы</option>
+                        </select>
+                    </label>
                     <div class="catalog-category-cascade" id="catalogCategoryCascadeFilters"></div>
+                    <label class="catalog-control" id="catalogScooterWheelTypeFilter" hidden>
+                        <span>Тип колёс</span>
+                        <select id="catalogScooterWheelType">
+                            <option value="">Все типы</option>
+                            <option value="trick">Трюковые</option>
+                            <option value="city">Городские</option>
+                        </select>
+                    </label>
                     <details class="catalog-multi-filter" id="catalogPartWheelDiameterFilter" hidden>
                         <summary class="catalog-multi-filter__trigger"><span>Диаметр колеса</span><span class="catalog-multi-filter__selection" id="partWheelDiameterSelection">Все</span></summary>
                         <div class="catalog-multi-filter__menu">
@@ -145,11 +173,6 @@
                 <!-- СПИННЕР ЗАГРУЗКИ -->
                 <div class="catalog__loading" id="catalogLoading" hidden>
                     <div class="catalog__spinner"></div>
-                </div>
-
-                <!-- КНОПКА «ПОКАЗАТЬ ЕЩЁ» -->
-                <div class="catalog__more-wrap" id="catalogMoreWrap" hidden>
-                    <button class="btn btn--outline" id="catalogMoreBtn" type="button">Показать ещё товары</button>
                 </div>
 
                 <!-- СЧЁТЧИК ТОВАРОВ -->
